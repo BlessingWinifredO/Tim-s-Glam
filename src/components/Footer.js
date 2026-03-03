@@ -77,10 +77,6 @@ export default function Footer() {
                 <FiMail size={16} className="text-gold-300" />
                 <a href="mailto:winniewizzyb@gmail.com" className="hover:text-gold-300 transition-colors">winniewizzyb@gmail.com</a>
               </li>
-              <li className="flex items-center space-x-2 text-primary-100">
-                <FiMail size={16} className="text-gold-300" />
-                <span>info@timsglam.com</span>
-              </li>
             </ul>
           </div>
         </div>

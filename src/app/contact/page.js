@@ -63,7 +63,7 @@ export default function Contact() {
       icon: FiMail,
       title: 'Email Us',
       line1: 'winniewizzyb@gmail.com',
-      line2: 'info@timsglam.com',
+      line2: 'Available 24/7',
       action: 'Send Email'
     },
     {
