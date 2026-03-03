@@ -1,13 +1,13 @@
-# TIM'S GLAM - Fashion E-commerce Website
+# TIM'S GLAM
 
-A modern, professional e-commerce website for selling premium unisex fashion for adults and kids.
+A modern, professional online fashion brand for premium unisex styles for adults and kids.
 
 ![TIM'S GLAM Logo](public/logo.png)
 
 ## 🌟 Features
 
 ### Core Functionality
-- ✅ **Full E-commerce Experience** - Browse, filter, and purchase products
+- ✅ **Full Online Fashion Experience** - Browse, filter, and purchase products
 - ✅ **Shopping Cart** - Add/remove products, update quantities, persistent cart storage
 - ✅ **Product Catalog** - 15+ products with filtering by category, subcategory, and price
 - ✅ **Product Details** - Individual product pages with size/color selection
@@ -50,7 +50,7 @@ A modern, professional e-commerce website for selling premium unisex fashion for
 
 1. **Navigate to project directory**
 ```bash
-cd c:\Users\USER\Documents\tims-glam-ecommerce
+cd <your-project-folder>
 ```
 
 2. **Install dependencies**
@@ -89,7 +89,7 @@ npm start
 ## 📁 Project Structure
 
 ```
-tims-glam-ecommerce/
+tims-glam/
 ├── src/
 │   ├── app/                    # Next.js 14 app directory
 │   │   ├── page.js            # Home page

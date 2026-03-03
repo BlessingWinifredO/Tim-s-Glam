@@ -1,7 +1,7 @@
 {
-  "name": "tims-glam-ecommerce",
+  "name": "tims-glam",
   "version": "1.0.0",
-  "description": "TIM'S GLAM - Professional Fashion E-commerce Website",
+  "description": "TIM'S GLAM - Premium Online Fashion Brand",
   "private": true,
   "scripts": {
     "dev": "next dev",
