@@ -178,7 +178,7 @@ tims-glam/
 ## 🤝 Support
 
 For questions or support, please contact:
-- **Email:** info@timsglam.com
+- **Email:** winniewizzyb@gmail.com
 - **Phone:** +1 (555) 123-4567
 
 ---

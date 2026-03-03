@@ -265,8 +265,8 @@ A modern, professional online fashion platform for TIM'S GLAM - a brand focused 
 
 3. **Email Us**
    - FiMail icon
-   - info@timsglam.com
-   - support@timsglam.com
+   - winniewizzyb@gmail.com
+   - Available 24/7
 
 4. **Store Hours**
    - FiClock icon
@@ -696,7 +696,7 @@ npm start
 **Company:** TIM'S GLAM  
 **Address:** 123 Fashion Street, New York, NY 10001  
 **Phone:** +1 (555) 123-4567  
-**Email:** info@timsglam.com / support@timsglam.com  
+**Email:** winniewizzyb@gmail.com  
 **Hours:** Mon-Sat: 10AM-8PM, Sunday: 11AM-6PM  
 
 **Social Media:**
