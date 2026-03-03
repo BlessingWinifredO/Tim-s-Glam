@@ -46,11 +46,11 @@ export default function Contact() {
 
   const contactMethods = [
     {
-      icon: FiMapPin,
-      title: 'Visit Our Store',
-      line1: '123 Fashion Street',
-      line2: 'New York, NY 10001',
-      action: 'Get Directions'
+      icon: FiMessageCircle,
+      title: 'Online Support',
+      line1: 'Live Chat & Email Support',
+      line2: 'Available 24/7',
+      action: 'Start Chat'
     },
     {
       icon: FiPhone,
@@ -68,9 +68,9 @@ export default function Contact() {
     },
     {
       icon: FiClock,
-      title: 'Store Hours',
-      line1: 'Mon-Sat: 10AM-8PM',
-      line2: 'Sunday: 11AM-6PM',
+      title: 'Support Hours',
+      line1: 'Mon-Sat: 8AM-10PM',
+      line2: 'Sunday: 10AM-6PM',
       action: 'View Schedule'
     }
   ]

@@ -1,18 +1,78 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { FiMenu, FiX, FiShoppingCart, FiSearch, FiUser, FiHeart } from 'react-icons/fi'
 import { useCart } from '@/context/CartContext'
 import { useWishlist } from '@/context/WishlistContext'
+import { products } from '@/data/products'
+import { blogPosts } from '@/data/blog'
 import Cart from './Cart'
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const pathname = usePathname()
   const { toggleCart, getCartCount } = useCart()
   const { getWishlistCount } = useWishlist()
+
+  const normalizedQuery = searchQuery.trim().toLowerCase()
+
+  const productResults = useMemo(() => {
+    if (!normalizedQuery) return []
+
+    return products
+      .filter((product) => {
+        const searchable = [
+          product.name,
+          product.description,
+          product.category,
+          product.subcategory,
+          product.audience,
+          ...(product.colors || [])
+        ]
+          .join(' ')
+          .toLowerCase()
+
+        return searchable.includes(normalizedQuery)
+      })
+      .slice(0, 5)
+  }, [normalizedQuery])
+
+  const blogResults = useMemo(() => {
+    if (!normalizedQuery) return []
+
+    return blogPosts
+      .filter((post) => {
+        const searchable = [post.title, post.excerpt, post.category, post.author]
+          .join(' ')
+          .toLowerCase()
+        return searchable.includes(normalizedQuery)
+      })
+      .slice(0, 4)
+  }, [normalizedQuery])
+
+  const hasResults = productResults.length > 0 || blogResults.length > 0
+
+  useEffect(() => {
+    if (!isSearchOpen) return
+
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setIsSearchOpen(false)
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [isSearchOpen])
+
+  useEffect(() => {
+    setIsSearchOpen(false)
+    setSearchQuery('')
+  }, [pathname])
 
   const navLinks = [
     { name: 'Home', path: '/' },
@@ -87,6 +147,7 @@ export default function Header() {
             <div className="flex items-center space-x-2 md:space-x-3">
               <button
                 aria-label="Search"
+                onClick={() => setIsSearchOpen(true)}
                 className="w-10 h-10 rounded-full border border-gray-200 text-gray-600 hover:bg-primary-50 hover:text-primary-600 hover:border-primary-200 transition-all flex items-center justify-center"
               >
                 <FiSearch size={20} />
@@ -157,6 +218,111 @@ export default function Header() {
           )}
         </div>
       </header>
+
+      {isSearchOpen && (
+        <div className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm p-4 md:p-6" onClick={() => setIsSearchOpen(false)}>
+          <div
+            className="max-w-3xl mx-auto mt-10 md:mt-16 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="p-4 md:p-5 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <FiSearch size={20} className="text-primary-600 flex-shrink-0" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Search products, categories, or blog topics..."
+                  className="w-full text-base md:text-lg outline-none text-gray-900 placeholder:text-gray-400"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => setIsSearchOpen(false)}
+                  className="w-8 h-8 rounded-full hover:bg-gray-100 text-gray-500 flex items-center justify-center"
+                  aria-label="Close search"
+                >
+                  <FiX size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div className="max-h-[65vh] overflow-y-auto">
+              {!normalizedQuery && (
+                <div className="p-5 md:p-6 space-y-4">
+                  <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Quick links</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <Link href="/shop" className="px-4 py-3 rounded-xl bg-primary-50 text-primary-700 font-medium hover:bg-primary-100 transition-all">
+                      Shop
+                    </Link>
+                    <Link href="/blog" className="px-4 py-3 rounded-xl bg-primary-50 text-primary-700 font-medium hover:bg-primary-100 transition-all">
+                      Blog
+                    </Link>
+                    <Link href="/about" className="px-4 py-3 rounded-xl bg-primary-50 text-primary-700 font-medium hover:bg-primary-100 transition-all">
+                      About
+                    </Link>
+                    <Link href="/contact" className="px-4 py-3 rounded-xl bg-primary-50 text-primary-700 font-medium hover:bg-primary-100 transition-all">
+                      Contact
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              {normalizedQuery && (
+                <div className="p-5 md:p-6 space-y-6">
+                  {!hasResults && (
+                    <div className="text-center py-8">
+                      <p className="text-lg font-semibold text-gray-800 mb-2">No results found</p>
+                      <p className="text-gray-500">Try another keyword like hoodie, sneakers, sustainable, or style guide.</p>
+                    </div>
+                  )}
+
+                  {productResults.length > 0 && (
+                    <div>
+                      <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Products</p>
+                      <div className="space-y-2">
+                        {productResults.map((product) => (
+                          <Link
+                            key={product.id}
+                            href={`/shop/${product.id}`}
+                            className="block p-3 md:p-4 rounded-xl border border-gray-100 hover:border-gold-300 hover:bg-gold-50/30 transition-all"
+                          >
+                            <div className="flex items-center justify-between gap-4">
+                              <div>
+                                <p className="font-semibold text-gray-900">{product.name}</p>
+                                <p className="text-sm text-gray-500 capitalize">{product.category} • {product.subcategory}</p>
+                              </div>
+                              <p className="font-bold text-primary-600">${product.price.toFixed(2)}</p>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {blogResults.length > 0 && (
+                    <div>
+                      <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Blog Posts</p>
+                      <div className="space-y-2">
+                        {blogResults.map((post) => (
+                          <Link
+                            key={post.id}
+                            href={`/blog/${post.id}`}
+                            className="block p-3 md:p-4 rounded-xl border border-gray-100 hover:border-primary-300 hover:bg-primary-50/40 transition-all"
+                          >
+                            <p className="font-semibold text-gray-900 line-clamp-1">{post.title}</p>
+                            <p className="text-sm text-gray-500 mt-1">{post.category} • {post.readTime}</p>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       
       <Cart />
     </>

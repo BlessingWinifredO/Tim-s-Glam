@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { FiFacebook, FiInstagram, FiTwitter, FiMail, FiPhone, FiMapPin } from 'react-icons/fi'
+import { FiFacebook, FiInstagram, FiTwitter, FiMail, FiPhone, FiHeadphones } from 'react-icons/fi'
 
 export default function Footer() {
   const currentYear = new Date().getFullYear()
@@ -66,8 +66,8 @@ export default function Footer() {
             <h4 className="text-lg font-semibold mb-4 text-gold-500">Contact Us</h4>
             <ul className="space-y-3">
               <li className="flex items-center space-x-2 text-primary-100">
-                <FiMapPin size={16} className="text-gold-300" />
-                <span>123 Fashion Street, NY 10001</span>
+                <FiHeadphones size={16} className="text-gold-300" />
+                <span>Online Store</span>
               </li>
               <li className="flex items-center space-x-2 text-primary-100">
                 <FiPhone size={16} className="text-gold-300" />

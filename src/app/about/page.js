@@ -86,8 +86,8 @@ export default function About() {
               <div className="space-y-4 text-gray-700 text-base md:text-lg leading-relaxed">
                 <p>
                   Founded in 2020, TIM&apos;S GLAM emerged from a simple yet powerful belief: fashion should be 
-                  accessible, inclusive, and expressive for everyone. What started as a small boutique in 
-                  the heart of New York has grown into a beloved brand serving families worldwide.
+                  accessible, inclusive, and expressive for everyone. What began as an online-first brand has 
+                  grown into a beloved destination serving families worldwide.
                 </p>
                 <p>
                   We specialize in premium unisex clothing for both adults and children, breaking traditional 

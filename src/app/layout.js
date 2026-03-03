@@ -1,6 +1,7 @@
 import './globals.css'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
+import SplashScreen from '@/components/SplashScreen'
 import MobileBottomNav from '@/components/MobileBottomNav'
 import { CartProvider } from '@/context/CartContext'
 import { WishlistProvider } from '@/context/WishlistContext'
@@ -15,6 +16,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="flex flex-col min-h-screen">
+        <SplashScreen />
         <WishlistProvider>
           <CartProvider>
             <Header />
