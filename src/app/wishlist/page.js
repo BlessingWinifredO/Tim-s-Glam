@@ -42,7 +42,7 @@ export default function WishlistPage() {
                 Your wishlist is empty
               </h2>
               <p className="text-sm md:text-base text-gray-600 mb-6">
-                Start adding products you love to your wishlist. They'll be saved here for later.
+                Start adding products you love to your wishlist. They&apos;ll be saved here for later.
               </p>
               <Link href="/shop" className="btn-primary inline-flex items-center gap-2">
                 <span>Continue Shopping</span>

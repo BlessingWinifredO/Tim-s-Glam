@@ -135,7 +135,7 @@ export default function Contact() {
         <div className="container-custom relative z-10 text-center">
           <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold-500/20 backdrop-blur-sm border border-gold-300/30 text-gold-300 text-sm font-semibold tracking-wide mb-6">
             <FiMessageCircle size={18} />
-            We're Here to Help
+            We&apos;re Here to Help
           </span>
           <h1 className="text-3xl md:text-5xl lg:text-6xl font-playfair font-bold text-white mb-5 px-4">Get In Touch</h1>
           <p className="text-base md:text-xl text-white/90 max-w-2xl mx-auto leading-relaxed px-4 mb-10">
@@ -166,7 +166,7 @@ export default function Contact() {
           <div className="text-center mb-12">
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-playfair font-bold text-primary-600 mb-4">How Can We Help You?</h2>
             <p className="text-base md:text-lg text-gray-600 max-w-2xl mx-auto">
-              Choose your preferred way to reach us. We're committed to providing you with exceptional service.
+              Choose your preferred way to reach us. We&apos;re committed to providing you with exceptional service.
             </p>
           </div>
           
@@ -210,7 +210,7 @@ export default function Contact() {
                     </div>
                     <div>
                       <span className="font-bold block mb-0.5">Message Sent!</span>
-                      <span className="text-sm text-green-700">We'll respond within 24 hours.</span>
+                      <span className="text-sm text-green-700">We&apos;ll respond within 24 hours.</span>
                     </div>
                   </div>
                 )}
@@ -372,14 +372,14 @@ export default function Contact() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-primary-900/60 to-transparent"></div>
                 <div className="absolute bottom-6 left-6 right-6">
-                  <h3 className="text-2xl font-playfair font-bold text-white mb-2">Visit TIM'S GLAM</h3>
+                  <h3 className="text-2xl font-playfair font-bold text-white mb-2">Visit TIM&apos;S GLAM</h3>
                   <p className="text-white/90">Experience fashion that celebrates you</p>
                 </div>
               </div>
 
               {/* Why Choose Us */}
               <div className="bg-white p-6 md:p-8 rounded-2xl shadow-xl border border-gray-100">
-                <h3 className="text-xl md:text-2xl font-playfair font-bold text-primary-600 mb-6">Why Choose TIM'S GLAM?</h3>
+                <h3 className="text-xl md:text-2xl font-playfair font-bold text-primary-600 mb-6">Why Choose TIM&apos;S GLAM?</h3>
                 <div className="space-y-5">
                   {reasons.map((reason, index) => (
                     <div key={index} className="flex gap-4">
@@ -433,7 +433,7 @@ export default function Contact() {
           <div className="text-center mb-12">
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-playfair font-bold text-primary-600 mb-4">Frequently Asked Questions</h2>
             <p className="text-base md:text-lg text-gray-600">
-              Quick answers to common questions. Can't find what you're looking for? Contact us!
+              Quick answers to common questions. Can&apos;t find what you&apos;re looking for? Contact us!
             </p>
           </div>
 

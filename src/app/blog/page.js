@@ -244,7 +244,7 @@ export default function Blog() {
               </div>
               <h3 className="text-2xl font-playfair font-bold text-gray-800 mb-3">No Articles Found</h3>
               <p className="text-gray-500 mb-8 max-w-md mx-auto">
-                We couldn't find any articles matching your search. Try adjusting your filters or search terms.
+                We couldn&apos;t find any articles matching your search. Try adjusting your filters or search terms.
               </p>
               <button
                 onClick={() => {
