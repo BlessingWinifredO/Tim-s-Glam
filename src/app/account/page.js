@@ -1,10 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { FiMail, FiLock, FiUser, FiArrowRight, FiEye, FiEyeOff } from 'react-icons/fi'
+import Image from 'next/image'
+import { FiMail, FiLock, FiUser, FiArrowRight, FiEye, FiEyeOff, FiLogOut, FiShield } from 'react-icons/fi'
+import { FcGoogle } from 'react-icons/fc'
+import { useAuth } from '@/context/AuthContext'
 
 export default function AccountPage() {
+  const { user, loading, signInWithEmail, signUpWithEmail, signInWithGoogle, logout } = useAuth()
   const [mode, setMode] = useState('signin')
   const [formData, setFormData] = useState({
     fullName: '',
@@ -16,11 +20,118 @@ export default function AccountPage() {
   const [submitted, setSubmitted] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [authError, setAuthError] = useState('')
+  const [authMessage, setAuthMessage] = useState('')
+
+  // Reset form when user logs out
+  useEffect(() => {
+    if (!user && !loading) {
+      setSubmitted(false)
+      setAuthError('')
+      setAuthMessage('')
+      setIsSubmitting(false)
+      setErrors({})
+      setFormData({
+        fullName: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+      })
+    }
+  }, [user, loading])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-10 md:py-16">
+        <div className="container-custom">
+          <div className="max-w-md mx-auto bg-white rounded-2xl shadow-xl border border-gray-100 p-8 text-center">
+            <p className="text-gray-600">Loading account...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (user) {
+    const initial = user.displayName?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || 'U'
+
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-10 md:py-16">
+        <div className="container-custom">
+          <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+            <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-8 text-white">
+              <h1 className="text-3xl font-playfair font-bold mb-2">My Account</h1>
+              <p className="text-primary-100">Manage your profile and activity on TIM&apos;S GLAM</p>
+            </div>
+
+            <div className="p-6 md:p-8">
+              <div className="flex flex-col sm:flex-row gap-5 sm:items-center justify-between border border-gray-100 rounded-xl p-5 bg-gray-50/70">
+                <div className="flex items-center gap-4">
+                  {user.photoURL ? (
+                    <Image
+                      src={user.photoURL}
+                      alt="Profile"
+                      width={56}
+                      height={56}
+                      className="rounded-full object-cover border border-gray-200"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-full bg-primary-600 text-white flex items-center justify-center text-lg font-bold">
+                      {initial}
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-semibold text-gray-900">{user.displayName || 'TIM\'S GLAM Member'}</p>
+                    <p className="text-sm text-gray-600">{user.email}</p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-100 transition-colors"
+                >
+                  <FiLogOut size={16} />
+                  Sign Out
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                <div className="p-5 rounded-xl border border-gray-100 bg-white">
+                  <h2 className="font-semibold text-gray-900 mb-2">Profile Details</h2>
+                  <p className="text-sm text-gray-600">Name: {user.displayName || 'Not set'}</p>
+                  <p className="text-sm text-gray-600">Email: {user.email}</p>
+                  <p className="text-sm text-gray-600 mt-2">Provider: {user.providerData?.[0]?.providerId || 'password'}</p>
+                </div>
+
+                <div className="p-5 rounded-xl border border-gray-100 bg-white">
+                  <h2 className="font-semibold text-gray-900 mb-2">Activity</h2>
+                  <p className="text-sm text-gray-600">Order history and saved activity will appear here as you use the platform.</p>
+                  <Link href="/shop" className="inline-flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 font-semibold mt-3">
+                    Continue Shopping
+                    <FiArrowRight size={14} />
+                  </Link>
+                </div>
+              </div>
+
+              <div className="mt-6 p-4 rounded-xl bg-gold-50 border border-gold-200 text-sm text-gray-700 flex items-start gap-3">
+                <FiShield className="text-gold-600 mt-0.5" size={16} />
+                <p>Your account is secured with Firebase Authentication. Use Google or email login anytime.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const handleChange = (event) => {
     const { name, value } = event.target
     setFormData((prev) => ({ ...prev, [name]: value }))
     setErrors((prev) => ({ ...prev, [name]: '' }))
+    setAuthError('')
+    setAuthMessage('')
   }
 
   const validate = () => {
@@ -54,21 +165,59 @@ export default function AccountPage() {
     return Object.keys(nextErrors).length === 0
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     setSubmitted(false)
+    setAuthError('')
+    setAuthMessage('')
 
     if (!validate()) {
       return
     }
 
-    setSubmitted(true)
-    setFormData({
-      fullName: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
-    })
+    setIsSubmitting(true)
+
+    try {
+      if (mode === 'signin') {
+        await signInWithEmail({ email: formData.email, password: formData.password })
+        setAuthMessage('Signed in successfully.')
+      } else {
+        await signUpWithEmail({
+          fullName: formData.fullName,
+          email: formData.email,
+          password: formData.password,
+        })
+        setAuthMessage('Account created successfully.')
+      }
+
+      setSubmitted(true)
+      setFormData({
+        fullName: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+      })
+    } catch (error) {
+      setAuthError(error.message || 'Authentication failed. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleGoogleAuth = async () => {
+    setAuthError('')
+    setAuthMessage('')
+    setIsSubmitting(true)
+
+    try {
+      await signInWithGoogle()
+      setAuthMessage('Signed in with Google successfully.')
+      setSubmitted(true)
+    } catch (error) {
+      setAuthError(error.message || 'Google sign in failed. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -89,6 +238,8 @@ export default function AccountPage() {
                   setMode('signin')
                   setErrors({})
                   setSubmitted(false)
+                  setAuthError('')
+                  setAuthMessage('')
                 }}
                 className={`py-2.5 rounded-lg font-semibold transition-all ${
                   mode === 'signin' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-600'
@@ -102,6 +253,8 @@ export default function AccountPage() {
                   setMode('signup')
                   setErrors({})
                   setSubmitted(false)
+                  setAuthError('')
+                  setAuthMessage('')
                 }}
                 className={`py-2.5 rounded-lg font-semibold transition-all ${
                   mode === 'signup' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-600'
@@ -114,9 +267,34 @@ export default function AccountPage() {
 
             {submitted && (
               <div className="mb-5 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
-                {mode === 'signin' ? 'Signed in successfully.' : 'Account created successfully.'}
+                {authMessage || (mode === 'signin' ? 'Signed in successfully.' : 'Account created successfully.')}
               </div>
             )}
+
+            {authError && (
+              <div className="mb-5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                {authError}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleGoogleAuth}
+              disabled={isSubmitting}
+              className="w-full inline-flex items-center justify-center gap-3 border border-gray-200 rounded-lg py-3 px-4 text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-60"
+            >
+              <FcGoogle size={20} />
+              <span>{mode === 'signin' ? 'Sign In with Google' : 'Sign Up with Google'}</span>
+            </button>
+
+            <div className="relative my-5">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200"></div>
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-3 text-gray-500">or continue with email</span>
+              </div>
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {mode === 'signup' && (
@@ -212,7 +390,7 @@ export default function AccountPage() {
               )}
 
               <button type="submit" className="w-full btn-primary inline-flex items-center justify-center gap-2">
-                <span>{mode === 'signin' ? 'Sign In' : 'Create Account'}</span>
+                <span>{isSubmitting ? 'Please wait...' : mode === 'signin' ? 'Sign In' : 'Create Account'}</span>
                 <FiArrowRight size={18} />
               </button>
             </form>

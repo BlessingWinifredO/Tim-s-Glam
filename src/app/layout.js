@@ -1,8 +1,9 @@
 import './globals.css'
 import Header from '@/components/Header'
-import Footer from '@/components/Footer'
+import LayoutContent from '@/components/LayoutContent'
 import SplashScreen from '@/components/SplashScreen'
-import MobileBottomNav from '@/components/MobileBottomNav'
+import { AuthProvider } from '@/context/AuthContext'
+import { AdminAuthProvider } from '@/context/AdminAuthContext'
 import { CartProvider } from '@/context/CartContext'
 import { WishlistProvider } from '@/context/WishlistContext'
 
@@ -17,16 +18,16 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className="flex flex-col min-h-screen">
         <SplashScreen />
-        <WishlistProvider>
-          <CartProvider>
-            <Header />
-            <main className="flex-grow pb-16 md:pb-0">
-              {children}
-            </main>
-            <Footer />
-            <MobileBottomNav />
-          </CartProvider>
-        </WishlistProvider>
+        <AuthProvider>
+          <AdminAuthProvider>
+            <WishlistProvider>
+              <CartProvider>
+                <Header />
+                <LayoutContent>{children}</LayoutContent>
+              </CartProvider>
+            </WishlistProvider>
+          </AdminAuthProvider>
+        </AuthProvider>
       </body>
     </html>
   )

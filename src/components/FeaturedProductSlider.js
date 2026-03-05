@@ -44,7 +44,7 @@ export default function FeaturedProductSlider({ products }) {
     }, 5000)
 
     return () => clearInterval(timer)
-  }, [currentIndex, maxIndex])
+  }, [currentIndex, maxIndex, nextSlide])
 
   const translateValue = -(currentIndex * (100 / itemsPerView))
 

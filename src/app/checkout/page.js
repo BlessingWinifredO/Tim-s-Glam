@@ -1,12 +1,14 @@
 'use client'
 
 import { useCart } from '@/context/CartContext'
+import { useAuth } from '@/context/AuthContext'
 import Image from 'next/image'
 import Link from 'next/link'
 import { FiLock, FiCreditCard, FiTruck } from 'react-icons/fi'
 
 export default function Checkout() {
   const { cart, getCartTotal } = useCart()
+  const { user, loading } = useAuth()
 
   if (cart.length === 0) {
     return (
@@ -17,6 +19,35 @@ export default function Checkout() {
           <Link href="/shop" className="btn-primary">
             Continue Shopping
           </Link>
+        </div>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <p className="text-gray-600">Checking your account...</p>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="max-w-lg w-full bg-white rounded-2xl shadow-md border border-gray-100 p-7 text-center">
+          <h2 className="text-2xl md:text-3xl font-playfair font-bold text-gray-800 mb-3">Sign in required</h2>
+          <p className="text-gray-600 mb-6">
+            Please sign in or create an account before proceeding to payment.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link href="/account" className="btn-primary">
+              Sign In / Sign Up
+            </Link>
+            <Link href="/shop" className="btn-outline">
+              Continue Shopping
+            </Link>
+          </div>
         </div>
       </div>
     )
@@ -60,7 +91,7 @@ export default function Checkout() {
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
-                    <input type="email" className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent" />
+                    <input type="email" value={user.email || ''} readOnly className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 focus:ring-2 focus:ring-gold-500 focus:border-transparent" />
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Address</label>

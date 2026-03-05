@@ -104,7 +104,7 @@ export default function TestimonialsSlider() {
     }, 6000)
 
     return () => clearInterval(timer)
-  }, [currentIndex, maxIndex])
+  }, [currentIndex, maxIndex, nextSlide])
 
   const translateValue = -(currentIndex * (100 / itemsPerView))
 

@@ -3,9 +3,10 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { FiMenu, FiX, FiShoppingCart, FiSearch, FiUser, FiHeart } from 'react-icons/fi'
+import { FiMenu, FiX, FiShoppingCart, FiSearch, FiUser, FiHeart, FiLogOut } from 'react-icons/fi'
 import { useCart } from '@/context/CartContext'
 import { useWishlist } from '@/context/WishlistContext'
+import { useAuth } from '@/context/AuthContext'
 import { products } from '@/data/products'
 import { blogPosts } from '@/data/blog'
 import Cart from './Cart'
@@ -17,6 +18,8 @@ export default function Header() {
   const pathname = usePathname()
   const { toggleCart, getCartCount } = useCart()
   const { getWishlistCount } = useWishlist()
+  const { user, logout } = useAuth()
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
 
   const normalizedQuery = searchQuery.trim().toLowerCase()
 
@@ -72,6 +75,7 @@ export default function Header() {
   useEffect(() => {
     setIsSearchOpen(false)
     setSearchQuery('')
+    setIsProfileMenuOpen(false)
   }, [pathname])
 
   const navLinks = [
@@ -81,6 +85,23 @@ export default function Header() {
     { name: 'Blog', path: '/blog' },
     { name: 'Contact', path: '/contact' },
   ]
+
+  // Minimal header for all admin pages
+  if (pathname.startsWith('/admin')) {
+    return (
+      <header className="sticky top-0 z-50 bg-gradient-to-r from-primary-900 via-primary-800 to-primary-700 shadow-lg">
+        <div className="container-custom py-4 flex items-center justify-center">
+          <Link href="/" className="group">
+            <div className="relative w-12 h-12 flex items-center justify-center flex-shrink-0">
+              <div className="absolute inset-0 bg-gradient-to-br from-gold-400 via-gold-500 to-gold-600 rounded-full shadow-lg group-hover:shadow-xl transition-shadow"></div>
+              <div className="absolute inset-1 bg-gradient-to-br from-primary-600 to-primary-700 rounded-full"></div>
+              <span className="relative text-2xl font-playfair font-bold text-gold-300 drop-shadow-lg">TG</span>
+            </div>
+          </Link>
+        </div>
+      </header>
+    )
+  }
 
   return (
     <>
@@ -152,13 +173,68 @@ export default function Header() {
               >
                 <FiSearch size={20} />
               </button>
-              <Link
-                href="/account"
-                aria-label="Account"
-                className="hidden sm:flex w-10 h-10 rounded-full border border-gray-200 text-gray-600 hover:bg-primary-50 hover:text-primary-600 hover:border-primary-200 transition-all items-center justify-center"
-              >
-                <FiUser size={20} />
-              </Link>
+              <div className="relative">
+                <button
+                  aria-label="Account"
+                  onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+                  className="w-10 h-10 rounded-full border border-gray-200 text-gray-600 hover:bg-primary-50 hover:text-primary-600 hover:border-primary-200 transition-all flex items-center justify-center relative"
+                >
+                  {user ? (
+                    <span className="text-sm font-bold">{(user.displayName?.charAt(0) || user.email?.charAt(0) || 'U').toUpperCase()}</span>
+                  ) : (
+                    <FiUser size={20} />
+                  )}
+                  {user && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border border-white"></span>}
+                </button>
+
+                {isProfileMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-100 shadow-xl rounded-xl p-2 z-50">
+                    {user ? (
+                      <>
+                        <div className="px-3 py-2 border-b border-gray-100 mb-1">
+                          <p className="text-sm font-semibold text-gray-900 truncate">{user.displayName || 'TIM\'S GLAM Member'}</p>
+                          <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                        </div>
+                        <Link
+                          href="/account"
+                          className="w-full text-left px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors block"
+                          onClick={() => setIsProfileMenuOpen(false)}
+                        >
+                          My Profile
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            await logout()
+                            setIsProfileMenuOpen(false)
+                          }}
+                          className="w-full text-left px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors inline-flex items-center gap-2"
+                        >
+                          <FiLogOut size={14} />
+                          Sign Out
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Link
+                          href="/account"
+                          className="w-full text-left px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors block"
+                          onClick={() => setIsProfileMenuOpen(false)}
+                        >
+                          Sign In
+                        </Link>
+                        <Link
+                          href="/account"
+                          className="w-full text-left px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors block"
+                          onClick={() => setIsProfileMenuOpen(false)}
+                        >
+                          Create Account
+                        </Link>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
               <Link
                 href="/wishlist"
                 aria-label="Wishlist"
@@ -213,6 +289,17 @@ export default function Header() {
                     {link.name}
                   </Link>
                 ))}
+                <Link
+                  href="/account"
+                  className={`px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
+                    pathname === '/account'
+                      ? 'bg-primary-600 text-white'
+                      : 'text-gray-700 hover:bg-primary-50 hover:text-primary-600'
+                  }`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {user ? 'My Profile' : 'Sign In / Sign Up'}
+                </Link>
               </div>
             </nav>
           )}
