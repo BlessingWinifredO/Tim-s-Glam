@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAdminAuth } from '@/context/AdminAuthContext'
@@ -21,7 +22,7 @@ export default function AdminHeader({ onToggleSidebar }) {
 
   const handleLogout = () => {
     adminLogout()
-    router.push('/admin-signin')
+    router.push('/admin/signin')
   }
 
   return (
@@ -108,21 +109,23 @@ export default function AdminHeader({ onToggleSidebar }) {
                   </div>
 
                   {/* Menu Items */}
-                  <a
+                  <Link
                     href="/admin/settings"
                     className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition-colors text-sm"
+                    onClick={() => setIsUserMenuOpen(false)}
                   >
                     <FiSettings size={16} />
                     <span>Settings</span>
-                  </a>
+                  </Link>
 
-                  <a
+                  <Link
                     href="/admin/profile"
                     className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition-colors text-sm"
+                    onClick={() => setIsUserMenuOpen(false)}
                   >
                     <FiUser size={16} />
                     <span>Profile</span>
-                  </a>
+                  </Link>
 
                   {/* Logout */}
                   <button

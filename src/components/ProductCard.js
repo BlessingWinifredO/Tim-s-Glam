@@ -12,12 +12,18 @@ export default function ProductCard({ product }) {
   const { addToCart } = useCart()
   const { addToWishlist, isInWishlist } = useWishlist()
   const inWishlist = isInWishlist(product.id)
+  const productSizes = Array.isArray(product?.sizes) ? product.sizes : []
+  const productColors = Array.isArray(product?.colors) ? product.colors : []
+  const numericPrice = Number(product?.price)
+  const priceLabel = Number.isFinite(numericPrice) ? numericPrice.toFixed(2) : '0.00'
+  const inStock = typeof product?.inStock === 'boolean' ? product.inStock : Number(product?.stock) > 0
+  const imageSrc = product?.image || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" fill="%239ca3af" font-size="28" font-family="Arial">No Image</text></svg>'
 
   const handleQuickAdd = (e) => {
     e.preventDefault()
     // Add with default first size and color
-    const defaultSize = product.sizes[0]
-    const defaultColor = product.colors[0]
+    const defaultSize = productSizes[0] || 'M'
+    const defaultColor = productColors[0] || 'Default'
     addToCart(product, defaultSize, defaultColor, 1)
   }
   const handleWishlistToggle = (e) => {
@@ -37,8 +43,8 @@ export default function ProductCard({ product }) {
         {/* Image Container */}
         <div className="relative h-72 bg-gray-100 overflow-hidden">
           <Image 
-            src={product.image} 
-            alt={product.name}
+            src={imageSrc}
+            alt={product?.name || 'Product image'}
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-110"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -52,7 +58,7 @@ export default function ProductCard({ product }) {
           )}
           
           {/* Stock Status */}
-          {!product.inStock && (
+          {!inStock && (
             <div className="absolute top-3 right-3 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
               Out of Stock
             </div>
@@ -90,7 +96,7 @@ export default function ProductCard({ product }) {
         {/* Product Info */}
         <div className="p-4">
           <div className="text-xs text-gray-500 uppercase mb-1">
-            {product.category === 'adults' ? 'Adults' : 'Kids'} • {product.subcategory}
+            {(product?.category || 'General')} • {(product?.subcategory || 'Product')}
           </div>
           <h3 className="font-semibold text-gray-800 mb-2 group-hover:text-gold-500 transition-colors line-clamp-2">
             {product.name}
@@ -101,7 +107,7 @@ export default function ProductCard({ product }) {
           
           {/* Colors */}
           <div className="flex gap-1 mb-3">
-            {product.colors.slice(0, 4).map((color, index) => (
+            {productColors.slice(0, 4).map((color, index) => (
               <div 
                 key={index}
                 className="w-5 h-5 rounded-full border-2 border-gray-300"
@@ -123,17 +129,17 @@ export default function ProductCard({ product }) {
                 title={color}
               />
             ))}
-            {product.colors.length > 4 && (
-              <span className="text-xs text-gray-500 self-center ml-1">+{product.colors.length - 4}</span>
+            {productColors.length > 4 && (
+              <span className="text-xs text-gray-500 self-center ml-1">+{productColors.length - 4}</span>
             )}
           </div>
           
           {/* Price */}
           <div className="flex items-center justify-between">
             <span className="text-2xl font-bold text-gold-500">
-              ${product.price.toFixed(2)}
+              ${priceLabel}
             </span>
-            {product.inStock && (
+            {inStock && (
               <span className="text-xs text-green-600 font-semibold">In Stock</span>
             )}
           </div>

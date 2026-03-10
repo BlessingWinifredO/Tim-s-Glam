@@ -8,50 +8,48 @@ import AdminHeader from '@/components/AdminHeader'
 import AdminFooter from '@/components/AdminFooter'
 
 export default function AdminLayout({ children }) {
-  const { isAdminAuthenticated, loading, checkAdminSession } = useAdminAuth()
+  const { isAdminAuthenticated, loading } = useAdminAuth()
   const router = useRouter()
   const pathname = usePathname()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const isSigninPage = pathname === '/admin/signin'
 
-  // Check admin session on mount
+  // Redirect to signin if not authenticated
   useEffect(() => {
-    checkAdminSession()
-  }, [])
-
-  // Redirect to signin if not authenticated (skip if still loading)
-  useEffect(() => {
-    if (loading) return // Wait for auth check to complete
-    
     // If on signin page, don't redirect
-    if (pathname === '/admin/signin') {
+    if (isSigninPage) {
       return
     }
 
     // If not authenticated, redirect to signin
-    if (!isAdminAuthenticated) {
-      router.push('/admin-signin')
+    if (!isAdminAuthenticated && !loading) {
+      router.replace('/admin/signin')
     }
-  }, [isAdminAuthenticated, loading, router, pathname])
+  }, [isAdminAuthenticated, isSigninPage, loading, router])
 
   useEffect(() => {
     setIsSidebarOpen(false)
   }, [pathname])
 
-  // Show loading spinner while checking auth
+  // Show loading only if actively loading, not just unauthenticated
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading admin panel...</p>
+          <p className="text-gray-600">Loading...</p>
         </div>
       </div>
     )
   }
 
-  // If not authenticated and not on signin page, show nothing (will be redirected)
-  if (!isAdminAuthenticated) {
+  // If not authenticated and not on signin page, show nothing while redirecting
+  if (!isAdminAuthenticated && !isSigninPage) {
     return null
+  }
+
+  if (isSigninPage) {
+    return children
   }
 
   return (
@@ -64,7 +62,7 @@ export default function AdminLayout({ children }) {
         />
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col lg:pl-72">
           <AdminHeader onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)} />
           <main className="flex-1 p-4 sm:p-6 lg:p-8">
             <div className="max-w-7xl">

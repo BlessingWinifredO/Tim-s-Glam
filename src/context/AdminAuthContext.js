@@ -1,72 +1,106 @@
 'use client'
 
-import { createContext, useContext, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth'
+import { auth } from '@/lib/firebase'
 
 const AdminAuthContext = createContext()
 
 export function AdminAuthProvider({ children }) {
   const [adminUser, setAdminUser] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  const adminSignIn = async (email, password) => {
+  const getAllowedAdminEmails = useCallback(() => {
+    const allowedAdminsRaw = process.env.NEXT_PUBLIC_ADMIN_EMAIL || ''
+    return allowedAdminsRaw
+      .split(',')
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean)
+  }, [])
+
+  const buildAdminData = useCallback((email, previous = null) => ({
+    email,
+    name: 'Admin',
+    role: 'admin',
+    loggedInAt: previous?.loggedInAt || new Date().toISOString(),
+  }), [])
+
+  useEffect(() => {
+    // Clear Firebase auth session on mount (require fresh admin login each time)
+    const clearAndListen = async () => {
+      try {
+        await signOut(auth)
+      } catch (err) {
+        console.error('Error clearing auth on mount:', err)
+      }
+
+      setAdminUser(null)
+      localStorage.removeItem('adminUser')
+      setLoading(false)
+    }
+
+    clearAndListen()
+  }, [])
+
+  const adminSignIn = useCallback(async (email, password) => {
     setLoading(true)
     setError(null)
 
     try {
-      // For demo purposes, you can set admin credentials in Firebase
-      // Admin email: admin@timsgam.com
-      // Admin password: stored in Firestore in adminUsers collection
-      
-      // Check if credentials match (hardcoded for now, can be moved to Firestore)
-      const adminCredentials = {
-        email: 'admin@timsgam.com',
-        password: 'TimsGlam@Admin2026'
+      const normalizedEmail = (email || '').trim().toLowerCase()
+      const allowedAdminEmails = getAllowedAdminEmails()
+
+      await signInWithEmailAndPassword(auth, normalizedEmail, password)
+
+      if (!allowedAdminEmails.includes(normalizedEmail)) {
+        await signOut(auth)
+        const unauthorizedMessage = 'Access denied. This account is not authorized as admin.'
+        setError(unauthorizedMessage)
+        return { success: false, error: unauthorizedMessage }
       }
 
-      if (email === adminCredentials.email && password === adminCredentials.password) {
-        const adminData = {
-          email,
-          name: 'Admin',
-          role: 'admin',
-          loggedInAt: new Date()
-        }
-        setAdminUser(adminData)
-        localStorage.setItem('adminUser', JSON.stringify(adminData))
-        return { success: true }
-      } else {
-        setError('Invalid admin credentials')
-        return { success: false, error: 'Invalid email or password' }
-      }
+      const adminData = buildAdminData(normalizedEmail)
+      setAdminUser(adminData)
+      localStorage.setItem('adminUser', JSON.stringify(adminData))
+      
+      // Keep admin signed in to Firebase for Firestore write permissions
+      // Admin state is tracked via localStorage AND Firebase auth
+      return { success: true }
     } catch (err) {
-      setError(err.message)
-      return { success: false, error: err.message }
+      let message = err.message
+
+      if (err?.code === 'auth/operation-not-allowed') {
+        message = 'Firebase Email/Password sign-in is disabled. Enable it in Firebase Console > Authentication > Sign-in method > Email/Password.'
+      } else if (err?.code === 'auth/invalid-credential' || err?.code === 'auth/user-not-found' || err?.code === 'auth/wrong-password') {
+        message = 'Invalid email or password.'
+      } else if (err?.code === 'auth/admin-restricted-operation') {
+        message = 'This Firebase project restricts this sign-in operation. Enable Email/Password provider and create the admin user in Firebase Authentication.'
+      }
+
+      setError(message)
+      return { success: false, error: message }
     } finally {
       setLoading(false)
     }
-  }
+  }, [buildAdminData, getAllowedAdminEmails])
 
-  const adminLogout = () => {
+  const adminLogout = useCallback(async () => {
     setAdminUser(null)
     localStorage.removeItem('adminUser')
-  }
-
-  const checkAdminSession = () => {
-    setLoading(true)
     try {
-      const stored = localStorage.getItem('adminUser')
-      if (stored) {
-        setAdminUser(JSON.parse(stored))
-      }
+      await signOut(auth)
     } catch (err) {
-      console.error('Error restoring admin session:', err)
-      setAdminUser(null)
-    } finally {
-      setLoading(false)
+      console.error('Error signing out from Firebase Auth:', err)
     }
-  }
+  }, [])
 
-  const value = {
+  const checkAdminSession = useCallback(async () => {
+    // Session restoration is handled by onAuthStateChanged subscription.
+    return
+  }, [])
+
+  const value = useMemo(() => ({
     adminUser,
     loading,
     error,
@@ -74,7 +108,7 @@ export function AdminAuthProvider({ children }) {
     adminLogout,
     checkAdminSession,
     isAdminAuthenticated: !!adminUser
-  }
+  }), [adminUser, loading, error, adminSignIn, adminLogout, checkAdminSession])
 
   return (
     <AdminAuthContext.Provider value={value}>

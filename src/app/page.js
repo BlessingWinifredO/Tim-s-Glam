@@ -1,9 +1,11 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { FiTruck, FiShield, FiRefreshCw, FiAward, FiArrowRight } from 'react-icons/fi'
-import { products } from '@/data/products'
+import { collection, getDocs, query, where, limit } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import { blogPosts } from '@/data/blog'
 import ProductCard from '@/components/ProductCard'
 import ImageSlider from '@/components/ImageSlider'
@@ -11,6 +13,31 @@ import FeaturedProductSlider from '@/components/FeaturedProductSlider'
 import TestimonialsSlider from '@/components/TestimonialsSlider'
 
 export default function Home() {
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+  
+  // Fetch products from Firestore
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, 'products'))
+        const productsData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        // Only show active products
+        setProducts(productsData.filter(p => p.status === 'Active'))
+      } catch (err) {
+        console.error('Error fetching products:', err)
+        setProducts([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProducts()
+  }, [])
+  
   const featuredProducts = products.filter(p => p.featured).slice(0, 12)
   const latestBlogs = blogPosts.slice(0, 3)
 
@@ -29,7 +56,7 @@ export default function Home() {
               <span className="text-gold-400">Your Glam.</span>
             </h1>
             <p className="text-lg sm:text-xl md:text-2xl mb-12 md:mb-16 max-w-2xl mx-auto leading-relaxed">
-              Discover premium unisex fashion for adults and kids. Elevate your wardrobe with TIM&apos;S GLAM.
+              Discover unique, creative styles from independent fashion entrepreneurs across the globe.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center w-full sm:w-auto">
               <Link href="/shop" className="btn-primary">
@@ -89,7 +116,7 @@ export default function Home() {
           {/* Section Header */}
           <div className="text-center mb-16">
             <p className="text-gold-500 font-semibold mb-3 tracking-widest uppercase text-sm">About TIM&apos;S GLAM</p>
-            <h2 className="heading-md mb-4">Redefining Fashion Excellence</h2>
+            <h2 className="heading-md mb-4">Empowering Independent Fashion Brands</h2>
             <div className="w-24 h-1 bg-gradient-to-r from-primary-600 to-gold-500 mx-auto rounded-full"></div>
           </div>
 
@@ -98,11 +125,11 @@ export default function Home() {
             <div className="space-y-6 order-2 lg:order-1">
               <div className="space-y-4">
                 <p className="text-lg text-gray-700 leading-relaxed">
-                  At <span className="font-bold text-primary-600">TIM&apos;S GLAM</span>, we don&apos;t just sell fashion—we craft experiences. Our mission is to bring you premium unisex collections that speak to your unique style, whether you&apos;re dressing yourself or your little ones.
+                  At <span className="font-bold text-primary-600">TIM&apos;S GLAM</span>, we connect independent designers with customers seeking original, high-quality fashion. Founded in 2022, our platform is built to help emerging brands grow and be discovered globally.
                 </p>
                 
                 <p className="text-lg text-gray-700 leading-relaxed">
-                  Every piece in our collection is carefully selected to meet the highest standards of quality, comfort, and contemporary design. We believe everyone deserves to look and feel exceptional, every single day.
+                  We combine fashion and technology to deliver a modern marketplace experience where creativity, identity, and entrepreneurship thrive together.
                 </p>
               </div>
 
@@ -113,8 +140,8 @@ export default function Home() {
                     <FiAward className="text-primary-600" size={20} />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">Premium Quality</h4>
-                    <p className="text-sm text-gray-600">Handpicked materials for lasting elegance</p>
+                    <h4 className="font-semibold text-gray-900 mb-1">Independent Designers</h4>
+                    <p className="text-sm text-gray-600">Focused support for creative fashion entrepreneurs</p>
                   </div>
                 </div>
 
@@ -123,8 +150,8 @@ export default function Home() {
                     <FiShield className="text-gold-600" size={20} />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">Trusted Brand</h4>
-                    <p className="text-sm text-gray-600">Loved by thousands of families</p>
+                    <h4 className="font-semibold text-gray-900 mb-1">Global Marketplace</h4>
+                    <p className="text-sm text-gray-600">Connecting brands with customers worldwide</p>
                   </div>
                 </div>
 
@@ -133,8 +160,8 @@ export default function Home() {
                     <FiTruck className="text-primary-600" size={20} />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">Fast Delivery</h4>
-                    <p className="text-sm text-gray-600">Quick shipping to your doorstep</p>
+                    <h4 className="font-semibold text-gray-900 mb-1">Brand Opportunities</h4>
+                    <p className="text-sm text-gray-600">Tools and visibility for emerging labels</p>
                   </div>
                 </div>
 
@@ -143,8 +170,8 @@ export default function Home() {
                     <FiRefreshCw className="text-gold-600" size={20} />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">Easy Returns</h4>
-                    <p className="text-sm text-gray-600">30-day hassle-free returns</p>
+                    <h4 className="font-semibold text-gray-900 mb-1">Community & Discovery</h4>
+                    <p className="text-sm text-gray-600">A fashion ecosystem built for growth and connection</p>
                   </div>
                 </div>
               </div>
@@ -152,7 +179,7 @@ export default function Home() {
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 pt-6">
                 <Link href="/about" className="btn-primary group">
-                  <span>Discover Our Story</span>
+                  <span>Meet Our Leadership</span>
                   <FiArrowRight className="inline-block ml-2 group-hover:translate-x-1 transition-transform" size={18} />
                 </Link>
                 <Link href="/shop" className="btn-outline group">
@@ -167,7 +194,7 @@ export default function Home() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="relative h-64 rounded-2xl overflow-hidden shadow-lg">
                   <Image
-                    src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600"
+                    src="/home/home-1.jpg"
                     alt="Fashion Store"
                     fill
                     className="object-cover hover:scale-105 transition-transform duration-500"
@@ -175,7 +202,7 @@ export default function Home() {
                 </div>
                 <div className="relative h-64 rounded-2xl overflow-hidden shadow-lg mt-8">
                   <Image
-                    src="https://images.unsplash.com/photo-1445205170230-053b83016050?w=600"
+                    src="/home/home-2.jpg"
                     alt="Fashion Collection"
                     fill
                     className="object-cover hover:scale-105 transition-transform duration-500"
@@ -183,7 +210,7 @@ export default function Home() {
                 </div>
                 <div className="relative h-64 rounded-2xl overflow-hidden shadow-lg -mt-8">
                   <Image
-                    src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600"
+                    src="/home/home-3.jpg"
                     alt="Premium Fashion"
                     fill
                     className="object-cover hover:scale-105 transition-transform duration-500"
@@ -191,7 +218,7 @@ export default function Home() {
                 </div>
                 <div className="relative h-64 rounded-2xl overflow-hidden shadow-lg">
                   <Image
-                    src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=600"
+                    src="/home/home-4.jpg"
                     alt="Style Collection"
                     fill
                     className="object-cover hover:scale-105 transition-transform duration-500"
@@ -277,7 +304,7 @@ export default function Home() {
             <Link href="/shop?category=adults" className="group focus:outline-none">
               <article className="relative h-[420px] rounded-2xl overflow-hidden border border-gray-100 shadow-lg hover:shadow-2xl transition-all duration-500">
                 <Image
-                  src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=900"
+                  src="/home/home-5.jpg"
                   alt="Adults Collection"
                   fill
                   className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -305,7 +332,7 @@ export default function Home() {
             <Link href="/shop?category=kids" className="group focus:outline-none">
               <article className="relative h-[420px] rounded-2xl overflow-hidden border border-gray-100 shadow-lg hover:shadow-2xl transition-all duration-500">
                 <Image
-                  src="https://images.unsplash.com/photo-1503944583220-79d8926ad5e2?w=900"
+                  src="/home/home-6.jpg"
                   alt="Kids Collection"
                   fill
                   className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -443,7 +470,7 @@ export default function Home() {
               {/* Image 1 */}
               <div className="relative h-32 rounded-2xl overflow-hidden shadow-xl group">
                 <Image
-                  src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400"
+                  src="/home/home-7.jpg"
                   alt="Fashion Collection 1"
                   fill
                   className="object-cover group-hover:scale-110 transition-transform duration-700"
@@ -455,7 +482,7 @@ export default function Home() {
               {/* Image 2 */}
               <div className="relative h-28 rounded-2xl overflow-hidden shadow-xl group">
                 <Image
-                  src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400"
+                  src="/home/home-8.jpg"
                   alt="Fashion Collection 2"
                   fill
                   className="object-cover group-hover:scale-110 transition-transform duration-700"
@@ -466,7 +493,7 @@ export default function Home() {
               {/* Image 3 */}
               <div className="relative h-32 rounded-2xl overflow-hidden shadow-xl group">
                 <Image
-                  src="https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400"
+                  src="/home/home-9.jpg"
                   alt="Fashion Collection 3"
                   fill
                   className="object-cover group-hover:scale-110 transition-transform duration-700"
@@ -542,7 +569,7 @@ export default function Home() {
               {/* Image 1 */}
               <div className="relative h-32 rounded-2xl overflow-hidden shadow-xl group">
                 <Image
-                  src="https://images.unsplash.com/photo-1445205170230-053b83016050?w=400"
+                  src="/home/home-10.jpg"
                   alt="Fashion Collection 4"
                   fill
                   className="object-cover group-hover:scale-110 transition-transform duration-700"
@@ -553,7 +580,7 @@ export default function Home() {
               {/* Image 2 */}
               <div className="relative h-28 rounded-2xl overflow-hidden shadow-xl group">
                 <Image
-                  src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=400"
+                  src="/home/home-11.jpg"
                   alt="Fashion Collection 5"
                   fill
                   className="object-cover group-hover:scale-110 transition-transform duration-700"
@@ -564,7 +591,7 @@ export default function Home() {
               {/* Image 3 */}
               <div className="relative h-32 rounded-2xl overflow-hidden shadow-xl group">
                 <Image
-                  src="https://images.unsplash.com/photo-1503944583220-79d8926ad5e2?w=400"
+                  src="/home/home-12.jpg"
                   alt="Fashion Collection 6"
                   fill
                   className="object-cover group-hover:scale-110 transition-transform duration-700"

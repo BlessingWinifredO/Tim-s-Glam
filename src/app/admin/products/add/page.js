@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -13,7 +14,21 @@ import {
   FiImage
 } from 'react-icons/fi'
 
-const categories = ['Men', 'Women', 'Kids', 'Unisex']
+const ageGroups = ['adults', 'kids']
+const audiences = [
+  { value: 'men', label: 'Men' },
+  { value: 'women', label: 'Women' },
+  { value: 'boys', label: 'Boys' },
+  { value: 'girls', label: 'Girls' },
+  { value: 'unisex', label: 'Unisex' }
+]
+const traditionalTypeValues = new Set(['saree', 'lehenga', 'kurta', 'wrapper', 'agbada'])
+const traditionalWearGroups = [
+  { id: 'adults-men', label: 'Adults: Men', category: 'adults', audience: 'men' },
+  { id: 'adults-women', label: 'Adults: Women', category: 'adults', audience: 'women' },
+  { id: 'kids-boys', label: 'Kids: Boys', category: 'kids', audience: 'boys' },
+  { id: 'kids-girls', label: 'Kids: Girls', category: 'kids', audience: 'girls' }
+]
 const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'One Size']
 
 export default function AddProductPage() {
@@ -24,12 +39,16 @@ export default function AddProductPage() {
   const [success, setSuccess] = useState(false)
   const [imageUrl, setImageUrl] = useState('')
   const [imagePreview, setImagePreview] = useState('')
+  const [selectedTraditionalGroup, setSelectedTraditionalGroup] = useState('none')
+  const isTraditionalMode = selectedTraditionalGroup !== 'none'
 
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     price: '',
-    category: 'Men',
+    category: 'adults',
+    audience: 'men',
+    subcategory: 'tshirt',
     sizes: [],
     stock: '',
     sku: '',
@@ -40,6 +59,18 @@ export default function AddProductPage() {
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File size must be less than 5MB')
+      return
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file')
+      return
+    }
 
     setUploading(true)
     setError('')
@@ -52,25 +83,29 @@ export default function AddProductPage() {
       }
       reader.readAsDataURL(file)
 
-      // Upload to Cloudinary
+      // Upload to our API endpoint
       const formDataCloud = new FormData()
       formDataCloud.append('file', file)
-      formDataCloud.append('upload_preset', 'tims_glam_unsigned')
 
-      const response = await fetch(
-        'https://api.cloudinary.com/v1_1/dh8gvxcqf/image/upload',
-        {
-          method: 'POST',
-          body: formDataCloud,
-        }
-      )
-
-      if (!response.ok) throw new Error('Failed to upload image')
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formDataCloud,
+      })
 
       const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to upload image')
+      }
+
+      if (!data.secure_url) {
+        throw new Error('No image URL received from server')
+      }
+
       setImageUrl(data.secure_url)
       setError('')
     } catch (err) {
+      console.error('Image upload error:', err)
       setError(`Image upload failed: ${err.message}`)
       setImagePreview('')
       setImageUrl('')
@@ -86,6 +121,34 @@ export default function AddProductPage() {
       [name]: value
     }))
   }
+
+  const applyTraditionalGroup = (groupId) => {
+    setSelectedTraditionalGroup(groupId)
+
+    if (groupId === 'none') return
+
+    const selectedGroup = traditionalWearGroups.find(group => group.id === groupId)
+    if (!selectedGroup) return
+
+    setFormData(prev => ({
+      ...prev,
+      category: selectedGroup.category,
+      audience: selectedGroup.audience,
+      subcategory: traditionalTypeValues.has(prev.subcategory) ? prev.subcategory : 'kurta'
+    }))
+  }
+
+  useEffect(() => {
+    if (!traditionalTypeValues.has(formData.subcategory)) {
+      setSelectedTraditionalGroup('none')
+      return
+    }
+
+    const matchedGroup = traditionalWearGroups.find(
+      group => group.category === formData.category && group.audience === formData.audience
+    )
+    setSelectedTraditionalGroup(matchedGroup ? matchedGroup.id : 'none')
+  }, [formData.category, formData.audience, formData.subcategory])
 
   const toggleSize = (size) => {
     setFormData(prev => ({
@@ -148,11 +211,13 @@ export default function AddProductPage() {
       }
 
       // Add product to Firestore
-      const docRef = await addDoc(collection(db, 'products'), {
+      const productData = {
         name: formData.name,
         description: formData.description,
         price: parseFloat(formData.price),
         category: formData.category,
+        audience: formData.audience,
+        subcategory: formData.subcategory,
         sizes: formData.sizes,
         stock: parseInt(formData.stock),
         sku: formData.sku || `SKU-${Date.now()}`,
@@ -160,7 +225,8 @@ export default function AddProductPage() {
         status: formData.status,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-      })
+      }
+      const docRef = await addDoc(collection(db, 'products'), productData)
 
       setSuccess(true)
       // Redirect to products page after 2 seconds
@@ -168,7 +234,11 @@ export default function AddProductPage() {
         router.push('/admin/products')
       }, 2000)
     } catch (err) {
-      setError(`Failed to add product: ${err.message}`)
+      const message =
+        err?.code === 'permission-denied'
+          ? 'Failed to add product: Firestore permission denied. Ensure admin is signed in and Firestore rules allow authenticated writes to products.'
+          : `Failed to add product: ${err.message}`
+      setError(message)
     } finally {
       setLoading(false)
     }
@@ -179,7 +249,7 @@ export default function AddProductPage() {
       {/* Header */}
       <div className="mb-8">
         <button
-          onClick={() => router.back()}
+          onClick={() => router.push('/admin/products')}
           className="flex items-center gap-2 text-primary-600 hover:text-primary-700 mb-4 font-medium transition-colors"
         >
           <FiArrowLeft className="h-5 w-5" />
@@ -215,11 +285,13 @@ export default function AddProductPage() {
           
           <div className="space-y-4">
             {imagePreview ? (
-              <div className="relative">
-                <img
+              <div className="relative w-full max-w-sm h-64">
+                <Image
                   src={imagePreview}
                   alt="Product preview"
-                  className="w-full max-w-sm h-64 object-cover rounded-lg"
+                  fill
+                  unoptimized
+                  className="object-cover rounded-lg"
                 />
                 <button
                   type="button"
@@ -320,18 +392,109 @@ export default function AddProductPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Category *
+                  Age Group *
                 </label>
                 <select
                   name="category"
                   value={formData.category}
                   onChange={handleInputChange}
+                  disabled={isTraditionalMode}
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
-                  {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
+                  {ageGroups.map(group => (
+                    <option key={group} value={group}>
+                      {group.charAt(0).toUpperCase() + group.slice(1)}
+                    </option>
                   ))}
                 </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Gender/Audience *
+                </label>
+                <select
+                  name="audience"
+                  value={formData.audience}
+                  onChange={handleInputChange}
+                  disabled={isTraditionalMode}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  {audiences.map(aud => (
+                    <option key={aud.value} value={aud.value}>{aud.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Product Type *
+                </label>
+                <input
+                  type="text"
+                  name="subcategory"
+                  value={formData.subcategory}
+                  onChange={handleInputChange}
+                  readOnly={isTraditionalMode}
+                  placeholder="e.g., kaftan, gown, blazer"
+                  className={`w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                    isTraditionalMode ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''
+                  }`}
+                />
+                {isTraditionalMode && (
+                  <p className="text-xs text-amber-700 mt-1">
+                    Traditional mode is active. Edit product type in the Traditional Wear section below.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <h3 className="text-sm font-semibold text-amber-900">Traditional Wear Section</h3>
+                <button
+                  type="button"
+                  onClick={() => applyTraditionalGroup('none')}
+                  className="text-xs font-semibold text-amber-800 hover:text-amber-900"
+                >
+                  Clear
+                </button>
+              </div>
+              <p className="text-xs text-amber-800 mb-3">
+                Select where this traditional wear belongs. This auto-maps Age Group and Gender to match the shop dropdown.
+              </p>
+
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                {traditionalWearGroups.map(group => (
+                  <button
+                    key={group.id}
+                    type="button"
+                    onClick={() => applyTraditionalGroup(group.id)}
+                    className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all border ${
+                      selectedTraditionalGroup === group.id
+                        ? 'bg-amber-600 text-white border-amber-600'
+                        : 'bg-white text-amber-900 border-amber-200 hover:bg-amber-100'
+                    }`}
+                  >
+                    {group.label}
+                  </button>
+                ))}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-amber-900 mb-2">
+                  Traditional Product Type
+                </label>
+                <input
+                  type="text"
+                  name="subcategory"
+                  value={formData.subcategory}
+                  onChange={handleInputChange}
+                  placeholder="e.g., saree, agbada, kaftan"
+                  className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                />
               </div>
             </div>
           </div>
@@ -420,7 +583,7 @@ export default function AddProductPage() {
         <div className="flex gap-4 justify-end">
           <button
             type="button"
-            onClick={() => router.back()}
+              onClick={() => router.push('/admin/products')}
             className="px-6 py-3 border border-gray-200 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
             disabled={loading}
           >

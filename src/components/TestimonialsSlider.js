@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 
 const testimonials = [
@@ -89,13 +89,19 @@ export default function TestimonialsSlider() {
 
   const maxIndex = Math.max(0, testimonials.length - itemsPerView)
 
-  const nextSlide = () => {
-    setCurrentIndex((prev) => (prev >= maxIndex ? 0 : prev + 1))
-  }
+  const nextSlide = useCallback(() => {
+    setCurrentIndex((prev) => {
+      const maxIdx = Math.max(0, testimonials.length - itemsPerView)
+      return prev >= maxIdx ? 0 : prev + 1
+    })
+  }, [itemsPerView])
 
-  const prevSlide = () => {
-    setCurrentIndex((prev) => (prev <= 0 ? maxIndex : prev - 1))
-  }
+  const prevSlide = useCallback(() => {
+    setCurrentIndex((prev) => {
+      const maxIdx = Math.max(0, testimonials.length - itemsPerView)
+      return prev <= 0 ? maxIdx : prev - 1
+    })
+  }, [itemsPerView])
 
   // Auto-advance slider
   useEffect(() => {
@@ -104,7 +110,7 @@ export default function TestimonialsSlider() {
     }, 6000)
 
     return () => clearInterval(timer)
-  }, [currentIndex, maxIndex, nextSlide])
+  }, [nextSlide])
 
   const translateValue = -(currentIndex * (100 / itemsPerView))
 

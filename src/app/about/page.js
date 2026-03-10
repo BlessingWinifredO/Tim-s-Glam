@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import TeamMemberImage from '@/components/TeamMemberImage'
 import { FiAward, FiUsers, FiHeart, FiTrendingUp, FiShield, FiStar, FiPackage, FiGlobe, FiCheck } from 'react-icons/fi'
 
 export default function About() {
@@ -35,25 +36,29 @@ export default function About() {
 
   const team = [
     {
-      name: 'Tim Johnson',
-      role: 'Founder & Creative Director',
-      description: 'With over 15 years in fashion, Tim brings vision and expertise to every collection.',
-      focus: 'Brand Vision & Creative Leadership',
-      image: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=900&q=80'
+      name: 'Blessing W.O',
+      role: 'Founder, Chief Executive Officer & Chief Technology Officer',
+      description: 'Blessing W.O founded TIM\'S GLAM in 2022 to combine technology and fashion. As both CEO and CTO, he leads the company\'s vision, strategy, and technical development, ensuring the platform is innovative, reliable, and designed to help independent designers grow globally.',
+      focus: 'Vision, Strategy & Technical Leadership',
+      image: '/team/CEOBlessing.jpg',
+      fallbackImage: '/about/about-1.jpg',
+      imageClassName: 'object-contain bg-white p-3 group-hover:scale-100'
     },
     {
-      name: 'Sarah Chen',
-      role: 'Head of Design',
-      description: 'Sarah\'s innovative designs blend contemporary style with timeless elegance.',
-      focus: 'Collection Design & Trend Direction',
-      image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80'
+      name: 'Wenny',
+      role: 'Creative Director',
+      description: 'Wenny leads the creative vision of TIM\'S GLAM, shaping the brand identity, visual style, and presentation of fashion collections. She ensures the platform reflects modern fashion trends and provides an engaging experience for both designers and shoppers.',
+      focus: 'Brand Identity & Creative Direction',
+      image: '/team/Wenny.jpg',
+      fallbackImage: '/about/about-2.jpg'
     },
     {
-      name: 'Marcus Williams',
-      role: 'Operations Director',
-      description: 'Marcus ensures seamless operations and exceptional customer service.',
-      focus: 'Operations & Customer Experience',
-      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=900&q=80'
+      name: 'Fatima',
+      role: 'Operations & Strategy Manager',
+      description: 'Fatima brings expertise in project management and business analysis. She ensures TIM\'S GLAM runs efficiently, coordinates cross-functional initiatives, and provides insights that drive business growth.',
+      focus: 'Operations, Analysis & Strategic Growth',
+      image: '/about/about-3.jpg',
+      fallbackImage: '/about/about-3.jpg'
     }
   ]
 
@@ -77,7 +82,7 @@ export default function About() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-start">
             <div className="space-y-6">
               <div className="inline-flex items-center px-4 py-2 rounded-full bg-primary-50 text-primary-700 text-sm font-semibold tracking-wide">
-                Since 2020 • Built for Everyone
+                Founded in 2022 • Built for Fashion Entrepreneurs
               </div>
               <div>
                 <h2 className="heading-md mb-4">Our Story</h2>
@@ -85,19 +90,16 @@ export default function About() {
               </div>
               <div className="space-y-4 text-gray-700 text-base md:text-lg leading-relaxed">
                 <p>
-                  Founded in 2020, TIM&apos;S GLAM emerged from a simple yet powerful belief: fashion should be 
-                  accessible, inclusive, and expressive for everyone. What began as an online-first brand has 
-                  grown into a beloved destination serving families worldwide.
+                  Founded in 2022, TIM&apos;S GLAM was created to support independent fashion entrepreneurs 
+                  and help them reach a global audience.
                 </p>
                 <p>
-                  We specialize in premium unisex clothing for both adults and children, breaking traditional 
-                  fashion barriers and celebrating individual style. Every piece in our collection is carefully 
-                  curated to ensure it meets our high standards of quality, comfort, and design.
+                  Our platform connects fashion creators with customers who are looking for unique, creative, 
+                  and original styles.
                 </p>
                 <p>
-                  Our mission is to empower individuals to express their unique style with confidence. Whether 
-                  you&apos;re dressing for a special occasion or everyday comfort, TIM&apos;S GLAM has something 
-                  special for you and your family.
+                  We are building a professional, tech-enabled marketplace where emerging fashion brands can 
+                  grow, be discovered, and thrive globally.
                 </p>
               </div>
             </div>
@@ -107,26 +109,22 @@ export default function About() {
               <div className="relative bg-white p-7 md:p-8 rounded-2xl shadow-xl border border-gray-100">
                 <h3 className="text-2xl font-playfair font-bold text-primary-600 mb-3">Our Mission</h3>
                 <p className="text-gray-700 text-base md:text-lg mb-6 leading-relaxed">
-                  To provide high-quality, stylish, and inclusive fashion that empowers individuals 
-                  to express their authentic selves while making sustainable and ethical choices.
+                  To empower fashion entrepreneurs by giving them a platform to showcase their creativity and grow their brands.
                 </p>
 
-                <div className="grid grid-cols-3 gap-3 mb-6">
-                  {stats.slice(0, 3).map((stat, index) => (
-                    <div key={index} className="bg-gray-50 border border-gray-100 rounded-xl p-3 text-center">
-                      <p className="text-lg font-bold text-primary-600">{stat.number}</p>
-                      <p className="text-xs text-gray-500 mt-1">{stat.label}</p>
-                    </div>
-                  ))}
-                </div>
+                <h3 className="text-2xl font-playfair font-bold text-primary-600 mb-3">Our Vision</h3>
+                <p className="text-gray-700 text-base md:text-lg mb-6 leading-relaxed">
+                  To become a global marketplace where emerging fashion brands are discovered and celebrated.
+                </p>
 
-                <div className="flex items-center gap-2 text-gold-500">
-                  <FiStar size={20} />
-                  <FiStar size={20} />
-                  <FiStar size={20} />
-                  <FiStar size={20} />
-                  <FiStar size={20} />
-                  <span className="text-sm text-gray-600 ml-2">Trusted by families worldwide</span>
+                <div className="bg-gray-50 border border-gray-100 rounded-xl p-4">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2">What Makes Us Different</h4>
+                  <ul className="space-y-2 text-gray-700">
+                    <li className="flex items-start gap-2"><FiCheck className="text-gold-600 mt-1" />Focus on independent designers</li>
+                    <li className="flex items-start gap-2"><FiCheck className="text-gold-600 mt-1" />Global fashion marketplace</li>
+                    <li className="flex items-start gap-2"><FiCheck className="text-gold-600 mt-1" />Opportunities for new brands</li>
+                    <li className="flex items-start gap-2"><FiCheck className="text-gold-600 mt-1" />Fashion community and discovery</li>
+                  </ul>
                 </div>
               </div>
             </div>
@@ -196,12 +194,11 @@ export default function About() {
             {team.map((member, index) => (
               <div key={index} className="group bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-lg hover:shadow-2xl transition-all duration-300">
                 <div className="relative h-72 overflow-hidden">
-                  <Image
+                  <TeamMemberImage
                     src={member.image}
+                    fallbackSrc={member.fallbackImage}
                     alt={member.name}
-                    fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    imageClassName={member.imageClassName}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-primary-900/55 via-transparent to-transparent"></div>
                   <div className="absolute bottom-4 left-4 right-4">
@@ -221,11 +218,11 @@ export default function About() {
         </div>
       </section>
 
-      {/* Sustainability Section */}
+      {/* Culture Section */}
       <section className="section-padding relative overflow-hidden">
         <div className="absolute inset-0">
           <Image
-            src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=2000&q=80"
+            src="/about/about-4.jpg"
             alt="Sustainability"
             fill
             className="object-cover"
@@ -238,174 +235,54 @@ export default function About() {
           {/* Header */}
           <div className="text-center mb-10 md:mb-16">
             <span className="inline-flex items-center px-3 md:px-4 py-1.5 md:py-2 rounded-full bg-gold-500/20 backdrop-blur-sm border border-gold-300/30 text-gold-300 text-xs md:text-sm font-semibold tracking-wide mb-4 md:mb-5">
-              Our Commitment
+              Our Culture
             </span>
-            <h2 className="text-2xl md:text-4xl lg:text-5xl font-playfair font-bold text-white mb-3 md:mb-5 px-4">Committed to Sustainability</h2>
+            <h2 className="text-2xl md:text-4xl lg:text-5xl font-playfair font-bold text-white mb-3 md:mb-5 px-4">Our Culture at TIM&apos;S GLAM</h2>
             <p className="text-base md:text-lg lg:text-xl text-white/90 max-w-3xl mx-auto leading-relaxed px-4">
-              Fashion that doesn&apos;t cost the earth. We&apos;re committed to sustainable practices across every aspect of our business.
+              At TIM&apos;S GLAM, we believe fashion is more than style, it&apos;s creativity, identity, and entrepreneurship.
             </p>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-10 md:mb-16">
-            <div className="text-center bg-white/10 backdrop-blur-md border border-white/20 rounded-xl md:rounded-2xl p-4 md:p-6">
-              <p className="text-2xl md:text-4xl font-bold text-gold-300 mb-1 md:mb-2">85%</p>
-              <p className="text-xs md:text-base text-white/90 leading-tight">Sustainable Materials</p>
-            </div>
-            <div className="text-center bg-white/10 backdrop-blur-md border border-white/20 rounded-xl md:rounded-2xl p-4 md:p-6">
-              <p className="text-2xl md:text-4xl font-bold text-gold-300 mb-1 md:mb-2">100%</p>
-              <p className="text-xs md:text-base text-white/90 leading-tight">Carbon Neutral</p>
-            </div>
-            <div className="text-center bg-white/10 backdrop-blur-md border border-white/20 rounded-xl md:rounded-2xl p-4 md:p-6">
-              <p className="text-2xl md:text-4xl font-bold text-gold-300 mb-1 md:mb-2">50+</p>
-              <p className="text-xs md:text-base text-white/90 leading-tight">Eco Partners</p>
-            </div>
-            <div className="text-center bg-white/10 backdrop-blur-md border border-white/20 rounded-xl md:rounded-2xl p-4 md:p-6">
-              <p className="text-2xl md:text-4xl font-bold text-gold-300 mb-1 md:mb-2">Zero</p>
-              <p className="text-xs md:text-base text-white/90 leading-tight">Waste Goal 2027</p>
-            </div>
-          </div>
-
-          {/* Sustainability Pillars */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-8">
-            {/* Eco-Friendly Materials */}
-            <div className="group bg-white/10 backdrop-blur-md border border-white/20 rounded-xl md:rounded-2xl p-5 md:p-8 hover:bg-white/15 hover:border-gold-300/40 transition-all duration-300">
-              <div className="inline-flex items-center justify-center w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-gold-400 to-gold-600 rounded-full mb-4 md:mb-5 shadow-lg group-hover:scale-110 transition-transform">
-                <FiHeart size={20} className="text-white md:hidden" />
-                <FiHeart size={24} className="text-white hidden md:block" />
-              </div>
-              <h3 className="text-lg md:text-2xl font-playfair font-bold text-white mb-2 md:mb-3">Eco-Friendly Materials</h3>
-              <p className="text-sm md:text-base text-white/80 leading-relaxed mb-3 md:mb-4">
-                We prioritize organic cotton, recycled polyester, and other sustainable fabrics that minimize environmental impact.
-              </p>
-              <ul className="space-y-2 text-white/70 text-xs md:text-sm">
-                <li className="flex items-start gap-2">
-                  <FiCheck size={16} className="text-gold-300 mt-0.5 flex-shrink-0" />
-                  <span>85% sustainable materials by 2026</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <FiCheck size={16} className="text-gold-300 mt-0.5 flex-shrink-0" />
-                  <span>Certified organic cotton sourcing</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Ethical Production */}
-            <div className="group bg-white/10 backdrop-blur-md border border-white/20 rounded-xl md:rounded-2xl p-5 md:p-8 hover:bg-white/15 hover:border-gold-300/40 transition-all duration-300">
-              <div className="inline-flex items-center justify-center w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-gold-400 to-gold-600 rounded-full mb-4 md:mb-5 shadow-lg group-hover:scale-110 transition-transform">
-                <FiUsers size={20} className="text-white md:hidden" />
-                <FiUsers size={24} className="text-white hidden md:block" />
-              </div>
-              <h3 className="text-lg md:text-2xl font-playfair font-bold text-white mb-2 md:mb-3">Ethical Production</h3>
-              <p className="text-sm md:text-base text-white/80 leading-relaxed mb-3 md:mb-4">
-                Fair wages, safe working conditions, and transparency throughout our supply chain are non-negotiable.
-              </p>
-              <ul className="space-y-2 text-white/70 text-xs md:text-sm">
-                <li className="flex items-start gap-2">
-                  <FiCheck size={16} className="text-gold-300 mt-0.5 flex-shrink-0" />
-                  <span>Fair Trade certified facilities</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <FiCheck size={16} className="text-gold-300 mt-0.5 flex-shrink-0" />
-                  <span>Regular audits & worker wellness programs</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Carbon Neutral Shipping */}
-            <div className="group bg-white/10 backdrop-blur-md border border-white/20 rounded-xl md:rounded-2xl p-5 md:p-8 hover:bg-white/15 hover:border-gold-300/40 transition-all duration-300">
-              <div className="inline-flex items-center justify-center w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-gold-400 to-gold-600 rounded-full mb-4 md:mb-5 shadow-lg group-hover:scale-110 transition-transform">
-                <FiPackage size={20} className="text-white md:hidden" />
-                <FiPackage size={24} className="text-white hidden md:block" />
-              </div>
-              <h3 className="text-lg md:text-2xl font-playfair font-bold text-white mb-2 md:mb-3">Carbon Neutral Shipping</h3>
-              <p className="text-sm md:text-base text-white/80 leading-relaxed mb-3 md:mb-4">
-                Every delivery is carbon-offset through verified environmental projects worldwide.
-              </p>
-              <ul className="space-y-2 text-white/70 text-xs md:text-sm">
-                <li className="flex items-start gap-2">
-                  <FiCheck size={16} className="text-gold-300 mt-0.5 flex-shrink-0" />
-                  <span>100% carbon-neutral deliveries</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <FiCheck size={16} className="text-gold-300 mt-0.5 flex-shrink-0" />
-                  <span>Plastic-free packaging initiatives</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Circular Fashion */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-8">
             <div className="group bg-white/10 backdrop-blur-md border border-white/20 rounded-xl md:rounded-2xl p-5 md:p-8 hover:bg-white/15 hover:border-gold-300/40 transition-all duration-300">
               <div className="inline-flex items-center justify-center w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-gold-400 to-gold-600 rounded-full mb-4 md:mb-5 shadow-lg group-hover:scale-110 transition-transform">
                 <FiTrendingUp size={20} className="text-white md:hidden" />
                 <FiTrendingUp size={24} className="text-white hidden md:block" />
               </div>
-              <h3 className="text-lg md:text-2xl font-playfair font-bold text-white mb-2 md:mb-3">Circular Fashion</h3>
+              <h3 className="text-lg md:text-2xl font-playfair font-bold text-white mb-2 md:mb-3">1. Innovation</h3>
               <p className="text-sm md:text-base text-white/80 leading-relaxed mb-3 md:mb-4">
-                Take-back programs and recycling initiatives ensure products have a second life beyond your wardrobe.
+                We leverage technology to create a seamless, modern marketplace that empowers independent designers.
               </p>
-              <ul className="space-y-2 text-white/70 text-xs md:text-sm">
-                <li className="flex items-start gap-2">
-                  <FiCheck size={16} className="text-gold-300 mt-0.5 flex-shrink-0" />
-                  <span>Garment recycling program</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <FiCheck size={16} className="text-gold-300 mt-0.5 flex-shrink-0" />
-                  <span>Repair & care guides for longevity</span>
-                </li>
-              </ul>
             </div>
 
-            {/* Water Conservation */}
             <div className="group bg-white/10 backdrop-blur-md border border-white/20 rounded-xl md:rounded-2xl p-5 md:p-8 hover:bg-white/15 hover:border-gold-300/40 transition-all duration-300">
               <div className="inline-flex items-center justify-center w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-gold-400 to-gold-600 rounded-full mb-4 md:mb-5 shadow-lg group-hover:scale-110 transition-transform">
-                <FiShield size={20} className="text-white md:hidden" />
-                <FiShield size={24} className="text-white hidden md:block" />
+                <FiUsers size={20} className="text-white md:hidden" />
+                <FiUsers size={24} className="text-white hidden md:block" />
               </div>
-              <h3 className="text-lg md:text-2xl font-playfair font-bold text-white mb-2 md:mb-3">Water Conservation</h3>
+              <h3 className="text-lg md:text-2xl font-playfair font-bold text-white mb-2 md:mb-3">2. Collaboration</h3>
               <p className="text-sm md:text-base text-white/80 leading-relaxed mb-3 md:mb-4">
-                Advanced dyeing techniques and water-saving processes reduce our water footprint significantly.
+                We work closely with designers, team members, and our community to grow together and celebrate unique fashion.
               </p>
-              <ul className="space-y-2 text-white/70 text-xs md:text-sm">
-                <li className="flex items-start gap-2">
-                  <FiCheck size={16} className="text-gold-300 mt-0.5 flex-shrink-0" />
-                  <span>60% less water in production</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <FiCheck size={16} className="text-gold-300 mt-0.5 flex-shrink-0" />
-                  <span>Waterless dyeing technology</span>
-                </li>
-              </ul>
             </div>
 
-            {/* Global Impact */}
             <div className="group bg-white/10 backdrop-blur-md border border-white/20 rounded-xl md:rounded-2xl p-5 md:p-8 hover:bg-white/15 hover:border-gold-300/40 transition-all duration-300">
               <div className="inline-flex items-center justify-center w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-gold-400 to-gold-600 rounded-full mb-4 md:mb-5 shadow-lg group-hover:scale-110 transition-transform">
-                <FiGlobe size={20} className="text-white md:hidden" />
-                <FiGlobe size={24} className="text-white hidden md:block" />
+                <FiAward size={20} className="text-white md:hidden" />
+                <FiAward size={24} className="text-white hidden md:block" />
               </div>
-              <h3 className="text-lg md:text-2xl font-playfair font-bold text-white mb-2 md:mb-3">Global Impact</h3>
+              <h3 className="text-lg md:text-2xl font-playfair font-bold text-white mb-2 md:mb-3">3. Empowerment</h3>
               <p className="text-sm md:text-base text-white/80 leading-relaxed mb-3 md:mb-4">
-                Partnering with environmental organizations to support reforestation and ocean cleanup initiatives.
+                Our mission is to provide tools, exposure, and opportunities that help emerging fashion brands thrive globally.
               </p>
-              <ul className="space-y-2 text-white/70 text-xs md:text-sm">
-                <li className="flex items-start gap-2">
-                  <FiCheck size={16} className="text-gold-300 mt-0.5 flex-shrink-0" />
-                  <span>1% for the Planet member</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <FiCheck size={16} className="text-gold-300 mt-0.5 flex-shrink-0" />
-                  <span>Tree planting with every purchase</span>
-                </li>
-              </ul>
             </div>
           </div>
 
           {/* Call to Action */}
           <div className="mt-8 md:mt-12 text-center px-4">
-            <p className="text-white/80 text-sm md:text-lg mb-4 md:mb-6">Together, we can make fashion sustainable</p>
+            <p className="text-white/80 text-sm md:text-lg mb-4 md:mb-6">Where creativity, strategy, and passion come together to inspire growth.</p>
             <Link href="/shop" className="inline-flex items-center justify-center gap-2 bg-gold-500 hover:bg-gold-600 text-white font-semibold px-6 py-3 md:px-8 md:py-4 rounded-lg transition-all shadow-lg hover:shadow-xl text-sm md:text-base w-full sm:w-auto">
-              Shop Sustainable Fashion
+              Explore the Marketplace
             </Link>
           </div>
         </div>

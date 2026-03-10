@@ -4,6 +4,7 @@ import LayoutContent from '@/components/LayoutContent'
 import SplashScreen from '@/components/SplashScreen'
 import { AuthProvider } from '@/context/AuthContext'
 import { AdminAuthProvider } from '@/context/AdminAuthContext'
+import { AdminDataProvider } from '@/context/AdminDataContext'
 import { CartProvider } from '@/context/CartContext'
 import { WishlistProvider } from '@/context/WishlistContext'
 
@@ -20,12 +21,14 @@ export default function RootLayout({ children }) {
         <SplashScreen />
         <AuthProvider>
           <AdminAuthProvider>
-            <WishlistProvider>
-              <CartProvider>
-                <Header />
-                <LayoutContent>{children}</LayoutContent>
-              </CartProvider>
-            </WishlistProvider>
+            <AdminDataProvider>
+              <WishlistProvider>
+                <CartProvider>
+                  <Header />
+                  <LayoutContent>{children}</LayoutContent>
+                </CartProvider>
+              </WishlistProvider>
+            </AdminDataProvider>
           </AdminAuthProvider>
         </AuthProvider>
       </body>

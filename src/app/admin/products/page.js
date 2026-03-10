@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -92,19 +93,33 @@ export default function ProductsPage() {
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <p className="text-sm text-gray-600 mb-1">Active</p>
           <p className="text-3xl font-bold text-green-600">
-            {products.filter(p => p.status === 'Active').length}
+            {products.filter(p => p.status === 'Active' || (p.inStock !== false && !p.status)).length}
           </p>
         </div>
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <p className="text-sm text-gray-600 mb-1">Out of Stock</p>
           <p className="text-3xl font-bold text-red-600">
-            {products.filter(p => p.stock === 0).length}
+            {products.filter(p => {
+              // Check if product is explicitly out of stock
+              if (p.stock !== undefined && p.stock !== null) {
+                return Number(p.stock) === 0
+              }
+              // Check inStock boolean (only count as out of stock if explicitly false)
+              if (p.inStock !== undefined && p.inStock !== null) {
+                return p.inStock === false
+              }
+              // If no stock info, assume in stock
+              return false
+            }).length}
           </p>
         </div>
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <p className="text-sm text-gray-600 mb-1">Total Value</p>
           <p className="text-3xl font-bold text-primary-600">
-            ${(products.reduce((sum, p) => sum + (parseFloat(p.price || 0) * parseInt(p.stock || 0)), 0)).toFixed(2)}
+            ${(products.reduce((sum, p) => {
+              const stock = p.stock !== undefined ? parseInt(p.stock) : (p.inStock ? 1 : 0);
+              return sum + (parseFloat(p.price || 0) * stock);
+            }, 0)).toFixed(2)}
           </p>
         </div>
       </div>
@@ -189,9 +204,11 @@ export default function ProductsPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
                         {product.image ? (
-                          <img 
-                            src={product.image} 
+                          <Image
+                            src={product.image}
                             alt={product.name}
+                            width={40}
+                            height={40}
                             className="w-10 h-10 rounded-lg object-cover bg-gray-200"
                           />
                         ) : (
@@ -209,17 +226,17 @@ export default function ProductsPage() {
                       ${parseFloat(product.price || 0).toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                      {product.stock}
+                      {product.stock !== undefined ? product.stock : (product.inStock ? '∞' : '0')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        product.status === 'Active' 
+                        (product.status === 'Active' || (product.inStock && !product.status))
                           ? 'bg-green-100 text-green-800'
                           : product.status === 'Draft'
                           ? 'bg-yellow-100 text-yellow-800'
                           : 'bg-red-100 text-red-800'
                       }`}>
-                        {product.status}
+                        {product.status || (product.inStock ? 'Active' : 'Out of Stock')}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

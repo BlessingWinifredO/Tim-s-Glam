@@ -1,0 +1,6 @@
+{
+    "github.copilot.chat.copilotMemory.enabled": true,
+    "github.copilot.chat.codesearch.enabled": true,
+    "github.copilot.chat.anthropic.thinking.budgetTokens": 20000,
+    "github.copilot.chat.agent.autoFix": true
+}

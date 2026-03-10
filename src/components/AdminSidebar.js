@@ -1,8 +1,11 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
+import { collection, getDocs } from 'firebase/firestore'
 import { useAdminAuth } from '@/context/AdminAuthContext'
+import { db } from '@/lib/firebase'
 import { 
   FiHome, 
   FiPackage, 
@@ -25,15 +28,51 @@ export default function AdminSidebar({ isOpen, onClose }) {
   const pathname = usePathname()
   const router = useRouter()
   const { adminUser, adminLogout } = useAdminAuth()
+  const [quickStats, setQuickStats] = useState({ products: 0, orders: 0, customers: 0 })
 
-  const handleNavigate = (href) => {
-    router.push(href)
-    if (onClose) onClose()
-  }
+  useEffect(() => {
+    const fetchQuickStats = async () => {
+      try {
+        const allowedAdminsRaw = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'winniewizzyb@gmail.com,admin@tims-glam.com'
+        const adminEmails = new Set(
+          allowedAdminsRaw
+            .split(',')
+            .map((value) => value.trim().toLowerCase())
+            .filter(Boolean)
+        )
+
+        const [productsResult, ordersResult, usersResult] = await Promise.allSettled([
+          getDocs(collection(db, 'products')),
+          getDocs(collection(db, 'orders')),
+          getDocs(collection(db, 'users')),
+        ])
+
+        const productsCount = productsResult.status === 'fulfilled' ? productsResult.value.size : 0
+        const ordersCount = ordersResult.status === 'fulfilled' ? ordersResult.value.size : 0
+        const customerCount = usersResult.status === 'fulfilled'
+          ? new Set(
+            usersResult.value.docs
+              .map((doc) => String(doc.data()?.email || '').trim().toLowerCase())
+              .filter((email) => /\S+@\S+\.\S+/.test(email) && !adminEmails.has(email))
+          ).size
+          : 0
+
+        setQuickStats({
+          products: productsCount,
+          orders: ordersCount,
+          customers: customerCount,
+        })
+      } catch {
+        // Keep defaults if stats fetch fails in sidebar.
+      }
+    }
+
+    fetchQuickStats()
+  }, [])
 
   const handleLogout = () => {
     adminLogout()
-    router.push('/admin-signin')
+    router.push('/admin/signin')
     if (onClose) onClose()
   }
 
@@ -46,14 +85,14 @@ export default function AdminSidebar({ isOpen, onClose }) {
         />
       )}
 
-      <aside className={`fixed inset-y-0 left-0 z-50 w-72 transform transition-transform duration-300 ${
+      <aside className={`fixed inset-y-0 left-0 z-50 w-72 transform transition-transform duration-300 lg:translate-x-0 ${
         isOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <div className="flex min-h-0 h-full flex-1 flex-col bg-gradient-to-b from-primary-900 via-primary-800 to-primary-900">
           <div className="flex flex-1 flex-col overflow-y-auto pt-6 pb-4 px-4">
             {/* Logo / Brand */}
             <div className="mb-8">
-              <Link href="/admin" className="flex items-center group" onClick={() => onClose && onClose()}>
+              <Link href="/admin" className="flex items-center group">
                 <div className="w-12 h-12 bg-gradient-to-br from-gold-400 to-gold-600 rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all">
                   <span className="text-white font-bold text-xl">TG</span>
                 </div>
@@ -74,9 +113,9 @@ export default function AdminSidebar({ isOpen, onClose }) {
               {navigation.map((item) => {
                 const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
                 return (
-                  <button
+                  <Link
                     key={item.name}
-                    onClick={() => handleNavigate(item.href)}
+                    href={item.href}
                     className={`w-full group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 cursor-pointer ${
                       isActive
                         ? 'bg-white/10 border border-white/20 shadow-lg'
@@ -100,7 +139,7 @@ export default function AdminSidebar({ isOpen, onClose }) {
                     {isActive && (
                       <FiChevronRight className="h-4 w-4 text-gold-400" />
                     )}
-                  </button>
+                  </Link>
                 )
               })}
             </nav>
@@ -113,15 +152,15 @@ export default function AdminSidebar({ isOpen, onClose }) {
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between items-center">
                   <span className="text-primary-200">Products</span>
-                  <span className="font-bold text-gold-400">19</span>
+                  <span className="font-bold text-gold-400">{quickStats.products}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-primary-200">Orders</span>
-                  <span className="font-bold text-gold-400">0</span>
+                  <span className="font-bold text-gold-400">{quickStats.orders}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-primary-200">Customers</span>
-                  <span className="font-bold text-gold-400">0</span>
+                  <span className="font-bold text-gold-400">{quickStats.customers}</span>
                 </div>
               </div>
             </div>

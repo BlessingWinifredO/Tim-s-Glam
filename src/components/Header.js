@@ -4,10 +4,11 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { FiMenu, FiX, FiShoppingCart, FiSearch, FiUser, FiHeart, FiLogOut } from 'react-icons/fi'
+import { collection, getDocs } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import { useCart } from '@/context/CartContext'
 import { useWishlist } from '@/context/WishlistContext'
 import { useAuth } from '@/context/AuthContext'
-import { products } from '@/data/products'
 import { blogPosts } from '@/data/blog'
 import Cart from './Cart'
 
@@ -15,11 +16,31 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [products, setProducts] = useState([])
   const pathname = usePathname()
   const { toggleCart, getCartCount } = useCart()
   const { getWishlistCount } = useWishlist()
   const { user, logout } = useAuth()
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
+
+  // Fetch products for search
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, 'products'))
+        const productsData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        setProducts(productsData.filter(p => p.status === 'Active'))
+      } catch (err) {
+        console.error('Error fetching products:', err)
+        setProducts([])
+      }
+    }
+
+    fetchProducts()
+  }, [])
 
   const normalizedQuery = searchQuery.trim().toLowerCase()
 
@@ -42,7 +63,7 @@ export default function Header() {
         return searchable.includes(normalizedQuery)
       })
       .slice(0, 5)
-  }, [normalizedQuery])
+  }, [normalizedQuery, products])
 
   const blogResults = useMemo(() => {
     if (!normalizedQuery) return []

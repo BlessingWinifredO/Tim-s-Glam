@@ -2,13 +2,30 @@
 
 import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/context/AuthContext'
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import Image from 'next/image'
 import Link from 'next/link'
-import { FiLock, FiCreditCard, FiTruck } from 'react-icons/fi'
+import { useMemo, useState } from 'react'
+import { PayPalButtons, PayPalScriptProvider } from '@paypal/react-paypal-js'
+import { FiLock, FiTruck } from 'react-icons/fi'
 
 export default function Checkout() {
-  const { cart, getCartTotal } = useCart()
+  const { cart, getCartTotal, clearCart } = useCart()
   const { user, loading } = useAuth()
+  const [placingOrder, setPlacingOrder] = useState(false)
+  const [checkoutError, setCheckoutError] = useState('')
+  const [orderSuccess, setOrderSuccess] = useState(null)
+  const [shippingInfo, setShippingInfo] = useState({
+    firstName: '',
+    lastName: '',
+    email: user?.email || '',
+    address: '',
+    city: '',
+    postalCode: '',
+  })
+
+  const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || ''
 
   if (cart.length === 0) {
     return (
@@ -58,6 +75,115 @@ export default function Checkout() {
   const tax = subtotal * 0.08
   const total = subtotal + shipping + tax
 
+  const paypalAmount = useMemo(() => total.toFixed(2), [total])
+
+  const onShippingChange = (key, value) => {
+    setShippingInfo((prev) => ({
+      ...prev,
+      [key]: value,
+    }))
+  }
+
+  const isShippingValid = () => {
+    const required = ['firstName', 'lastName', 'email', 'address', 'city', 'postalCode']
+    return required.every((field) => String(shippingInfo[field] || '').trim().length > 0)
+  }
+
+  const handlePayPalApprove = async (data, actions) => {
+    try {
+      setCheckoutError('')
+      setPlacingOrder(true)
+
+      const captured = await actions.order.capture()
+
+      const orderPayload = {
+        userId: user.uid,
+        customerName: `${shippingInfo.firstName.trim()} ${shippingInfo.lastName.trim()}`,
+        customerEmail: shippingInfo.email.trim().toLowerCase(),
+        customerAddress: shippingInfo.address.trim(),
+        customerCity: shippingInfo.city.trim(),
+        customerPostalCode: shippingInfo.postalCode.trim(),
+        items: cart.map((item) => ({
+          productId: item.id,
+          name: item.name,
+          price: Number(item.price || 0),
+          quantity: Number(item.quantity || 1),
+          selectedSize: item.selectedSize || 'Default',
+          selectedColor: item.selectedColor || 'Default',
+          image: item.image || '',
+        })),
+        subtotal: Number(subtotal.toFixed(2)),
+        shipping: Number(shipping.toFixed(2)),
+        tax: Number(tax.toFixed(2)),
+        totalAmount: Number(total.toFixed(2)),
+        status: 'Processing',
+        paymentMethod: 'paypal',
+        paymentStatus: 'Paid',
+        paypalOrderId: data.orderID,
+        paypalCaptureId: captured?.purchase_units?.[0]?.payments?.captures?.[0]?.id || '',
+        createdAt: serverTimestamp(),
+      }
+
+      const orderRef = await addDoc(collection(db, 'orders'), orderPayload)
+
+      clearCart()
+      setOrderSuccess({
+        id: orderRef.id,
+        paypalOrderId: data.orderID,
+      })
+    } catch (error) {
+      setCheckoutError(error?.message || 'Payment succeeded, but order save failed. Please contact support.')
+    } finally {
+      setPlacingOrder(false)
+    }
+  }
+
+  const handlePayPalError = (error) => {
+    setCheckoutError(error?.message || 'PayPal checkout failed. Please try again.')
+  }
+
+  const createPayPalOrder = (data, actions) => {
+    if (!isShippingValid()) {
+      setCheckoutError('Please complete all shipping fields before paying with PayPal.')
+      return Promise.reject(new Error('Shipping information incomplete'))
+    }
+
+    setCheckoutError('')
+
+    return actions.order.create({
+      purchase_units: [
+        {
+          amount: {
+            currency_code: 'USD',
+            value: paypalAmount,
+            breakdown: {
+              item_total: { currency_code: 'USD', value: subtotal.toFixed(2) },
+              shipping: { currency_code: 'USD', value: shipping.toFixed(2) },
+              tax_total: { currency_code: 'USD', value: tax.toFixed(2) },
+            },
+          },
+          description: "TIM'S GLAM Order",
+        },
+      ],
+    })
+  }
+
+  if (orderSuccess) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="max-w-xl w-full bg-white rounded-2xl shadow-md border border-gray-100 p-8 text-center">
+          <h2 className="text-3xl font-playfair font-bold text-gray-800 mb-3">Order Placed Successfully</h2>
+          <p className="text-gray-600 mb-2">Order ID: <span className="font-semibold">{orderSuccess.id}</span></p>
+          <p className="text-gray-600 mb-6">PayPal Order ID: <span className="font-semibold">{orderSuccess.paypalOrderId}</span></p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link href="/shop" className="btn-primary">Continue Shopping</Link>
+            <Link href="/account" className="btn-outline">Go to Account</Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -83,58 +209,97 @@ export default function Checkout() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">First Name</label>
-                    <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent" />
+                    <input
+                      type="text"
+                      value={shippingInfo.firstName}
+                      onChange={(e) => onShippingChange('firstName', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Last Name</label>
-                    <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent" />
+                    <input
+                      type="text"
+                      value={shippingInfo.lastName}
+                      onChange={(e) => onShippingChange('lastName', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
+                    />
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
-                    <input type="email" value={user.email || ''} readOnly className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 focus:ring-2 focus:ring-gold-500 focus:border-transparent" />
+                    <input
+                      type="email"
+                      value={shippingInfo.email || user.email || ''}
+                      onChange={(e) => onShippingChange('email', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 focus:ring-2 focus:ring-gold-500 focus:border-transparent"
+                    />
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Address</label>
-                    <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent" />
+                    <input
+                      type="text"
+                      value={shippingInfo.address}
+                      onChange={(e) => onShippingChange('address', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">City</label>
-                    <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent" />
+                    <input
+                      type="text"
+                      value={shippingInfo.city}
+                      onChange={(e) => onShippingChange('city', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Postal Code</label>
-                    <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent" />
+                    <input
+                      type="text"
+                      value={shippingInfo.postalCode}
+                      onChange={(e) => onShippingChange('postalCode', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
+                    />
                   </div>
                 </div>
               </div>
 
-              {/* Payment Information */}
+              {/* Payment Method */}
               <div className="bg-white p-6 rounded-lg shadow-md">
                 <div className="flex items-center gap-2 mb-6">
-                  <FiCreditCard size={24} className="text-gold-500" />
-                  <h2 className="text-2xl font-bold text-primary-500">Payment Information</h2>
+                  <FiLock size={24} className="text-gold-500" />
+                  <h2 className="text-2xl font-bold text-primary-500">PayPal Payment</h2>
                 </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Card Number</label>
-                    <input type="text" placeholder="1234 5678 9012 3456" className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent" />
+
+                <p className="text-gray-600 mb-4">
+                  Use PayPal to complete your payment securely. Card fields were removed as requested.
+                </p>
+
+                {!paypalClientId ? (
+                  <div className="p-4 rounded-md border border-amber-300 bg-amber-50 text-amber-800 text-sm">
+                    PayPal is not configured yet. Add <span className="font-semibold">NEXT_PUBLIC_PAYPAL_CLIENT_ID</span> to your .env.local and restart the server.
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Expiry Date</label>
-                      <input type="text" placeholder="MM/YY" className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">CVV</label>
-                      <input type="text" placeholder="123" className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent" />
-                    </div>
+                ) : (
+                  <PayPalScriptProvider options={{ clientId: paypalClientId, currency: 'USD', intent: 'capture' }}>
+                    <PayPalButtons
+                      disabled={placingOrder}
+                      style={{ layout: 'vertical', shape: 'rect', label: 'paypal' }}
+                      createOrder={createPayPalOrder}
+                      onApprove={handlePayPalApprove}
+                      onError={handlePayPalError}
+                    />
+                  </PayPalScriptProvider>
+                )}
+
+                {checkoutError && (
+                  <div className="mt-4 p-3 rounded-md border border-red-200 bg-red-50 text-red-700 text-sm">
+                    {checkoutError}
                   </div>
-                </div>
+                )}
 
                 <div className="mt-6 flex items-center gap-2 text-sm text-gray-600">
                   <FiLock className="text-green-600" />
-                  <span>Your payment information is secure and encrypted</span>
+                  <span>PayPal handles your payment securely and encrypted.</span>
                 </div>
               </div>
             </div>
@@ -196,8 +361,8 @@ export default function Checkout() {
                   </div>
                 )}
 
-                <button className="w-full btn-primary mt-6">
-                  Place Order
+                <button className="w-full btn-primary mt-6 opacity-60 cursor-not-allowed" disabled>
+                  Complete payment with PayPal below
                 </button>
 
                 <p className="text-xs text-gray-500 text-center mt-4">

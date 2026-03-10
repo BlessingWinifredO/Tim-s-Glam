@@ -1,6 +1,10 @@
 'use client'
 
 import Link from 'next/link'
+import { useContext, useEffect, useMemo, useState } from 'react'
+import { collection, getDocs } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
+import { AdminDataContext } from '@/context/AdminDataContext'
 import { 
   FiPackage, 
   FiShoppingBag, 
@@ -9,51 +13,10 @@ import {
   FiTrendingUp,
   FiPlus,
   FiEye,
-  FiActivity
+  FiActivity,
+  FiLoader,
+  FiRefreshCw
 } from 'react-icons/fi'
-
-const stats = [
-  {
-    name: 'Total Products',
-    value: '19',
-    icon: FiPackage,
-    change: '+4.75%',
-    changeType: 'positive',
-    bgColor: 'bg-blue-50',
-    iconColor: 'text-blue-600',
-    trendIcon: true,
-  },
-  {
-    name: 'Total Orders',
-    value: '0',
-    icon: FiShoppingBag,
-    change: '0%',
-    changeType: 'neutral',
-    bgColor: 'bg-purple-50',
-    iconColor: 'text-purple-600',
-    trendIcon: false,
-  },
-  {
-    name: 'Total Customers',
-    value: '0',
-    icon: FiUsers,
-    change: '0%',
-    changeType: 'neutral',
-    bgColor: 'bg-pink-50',
-    iconColor: 'text-pink-600',
-    trendIcon: false,
-  },
-  {
-    name: 'Total Revenue',
-    value: '$0.00',
-    icon: FiDollarSign,
-    change: '0%',
-    changeType: 'neutral',
-    bgColor: 'bg-green-50',
-    iconColor: 'text-green-600',
-    trendIcon: false,
-  },
-]
 
 const quickActions = [
   { 
@@ -87,6 +50,145 @@ const quickActions = [
 ]
 
 export default function AdminDashboard() {
+  const adminDataContext = useContext(AdminDataContext)
+  const refreshTrigger = adminDataContext?.refreshTrigger || 0
+  
+  const [dashboardData, setDashboardData] = useState({
+    totalProducts: 0,
+    totalOrders: 0,
+    totalCustomers: 0,
+    totalRevenue: 0,
+    activeProducts: 0,
+    pendingOrders: 0,
+  })
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState('')
+
+  const fetchDashboardData = async (isRefresh = false) => {
+    if (isRefresh) {
+      setRefreshing(true)
+    } else {
+      setLoading(true)
+    }
+
+    try {
+      const allowedAdminsRaw = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'winniewizzyb@gmail.com,admin@tims-glam.com'
+      const adminEmails = new Set(
+        allowedAdminsRaw
+          .split(',')
+          .map((value) => value.trim().toLowerCase())
+          .filter(Boolean)
+      )
+
+      const [productsResult, ordersResult, usersResult] = await Promise.allSettled([
+        getDocs(collection(db, 'products')),
+        getDocs(collection(db, 'orders')),
+        getDocs(collection(db, 'users')),
+      ])
+
+      const products = productsResult.status === 'fulfilled'
+        ? productsResult.value.docs.map((item) => ({ id: item.id, ...item.data() }))
+        : []
+
+      const orders = ordersResult.status === 'fulfilled'
+        ? ordersResult.value.docs.map((item) => ({ id: item.id, ...item.data() }))
+        : []
+
+      const users = usersResult.status === 'fulfilled'
+        ? usersResult.value.docs.map((item) => ({ id: item.id, ...item.data() }))
+        : []
+
+      const customerEmails = new Set(
+        users
+          .map((user) => String(user.email || '').trim().toLowerCase())
+          .filter((email) => /\S+@\S+\.\S+/.test(email) && !adminEmails.has(email))
+      )
+
+      const completedRevenue = orders
+        .filter((order) => order.status === 'Completed')
+        .reduce((sum, order) => sum + Number(order.totalAmount || 0), 0)
+
+      setDashboardData({
+        totalProducts: products.length,
+        totalOrders: orders.length,
+        totalCustomers: customerEmails.size,
+        totalRevenue: completedRevenue,
+        activeProducts: products.filter((product) => product.status === 'Active').length,
+        pendingOrders: orders.filter((order) => order.status === 'Pending').length,
+      })
+
+      const failedSources = []
+      if (productsResult.status === 'rejected') failedSources.push('products')
+      if (ordersResult.status === 'rejected') failedSources.push('orders')
+      if (usersResult.status === 'rejected') failedSources.push('users')
+
+      if (failedSources.length) {
+        setError(`Some dashboard data could not be loaded (${failedSources.join(', ')}). Check Firestore rules publish status.`)
+      } else {
+        setError('')
+      }
+    } catch (err) {
+      setError(`Failed to load dashboard data: ${err.message}`)
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchDashboardData()
+  }, [])
+
+  // Auto-refresh dashboard when data changes (e.g., customer deletion on customers page)
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      fetchDashboardData(true)
+    }
+  }, [refreshTrigger])
+
+  const stats = useMemo(
+    () => [
+      {
+        name: 'Total Products',
+        value: String(dashboardData.totalProducts),
+        icon: FiPackage,
+        helper: `${dashboardData.activeProducts} active`,
+        bgColor: 'bg-blue-50',
+        iconColor: 'text-blue-600',
+        href: '/admin/products',
+      },
+      {
+        name: 'Total Orders',
+        value: String(dashboardData.totalOrders),
+        icon: FiShoppingBag,
+        helper: `${dashboardData.pendingOrders} pending`,
+        bgColor: 'bg-purple-50',
+        iconColor: 'text-purple-600',
+        href: '/admin/orders',
+      },
+      {
+        name: 'Total Customers',
+        value: String(dashboardData.totalCustomers),
+        icon: FiUsers,
+        helper: 'Registered users',
+        bgColor: 'bg-pink-50',
+        iconColor: 'text-pink-600',
+        href: '/admin/customers',
+      },
+      {
+        name: 'Total Revenue',
+        value: `$${dashboardData.totalRevenue.toFixed(2)}`,
+        icon: FiDollarSign,
+        helper: 'Completed orders only',
+        bgColor: 'bg-green-50',
+        iconColor: 'text-green-600',
+        href: '/admin/orders',
+      },
+    ],
+    [dashboardData]
+  )
+
   return (
     <div className="space-y-8">
       {/* Welcome Section */}
@@ -103,14 +205,47 @@ export default function AdminDashboard() {
       </div>
       {/* Stats Grid */}
       <div>
-        <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-          <FiActivity className="text-primary-600" />
-          Key Metrics
-        </h2>
+        <div className="mb-6 flex items-center justify-between gap-4">
+          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <FiActivity className="text-primary-600" />
+            Key Metrics
+          </h2>
+          <button
+            onClick={() => fetchDashboardData(true)}
+            disabled={refreshing}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors disabled:opacity-50"
+          >
+            {refreshing ? (
+              <>
+                <FiLoader className="h-4 w-4 animate-spin" />
+                Refreshing...
+              </>
+            ) : (
+              <>
+                <FiRefreshCw className="h-4 w-4" />
+                Refresh Data
+              </>
+            )}
+          </button>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-10 flex items-center justify-center">
+            <FiLoader className="h-6 w-6 text-primary-600 animate-spin" />
+            <p className="ml-3 text-gray-600">Loading dashboard metrics...</p>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => (
-            <div
+            <Link
               key={stat.name}
+              href={stat.href}
               className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100"
             >
               <div className={`${stat.bgColor} px-6 py-4`}>
@@ -125,22 +260,15 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <div className="px-6 py-3 bg-gray-50 border-t border-gray-100">
-                <p
-                  className={`text-sm font-semibold flex items-center gap-1 ${
-                    stat.changeType === 'positive'
-                      ? 'text-green-600'
-                      : stat.changeType === 'negative'
-                      ? 'text-red-600'
-                      : 'text-gray-500'
-                  }`}
-                >
-                  {stat.trendIcon && <FiTrendingUp className="h-4 w-4" />}
-                  {stat.change}
+                <p className="text-sm font-semibold flex items-center gap-1 text-gray-600">
+                  <FiTrendingUp className="h-4 w-4" />
+                  {stat.helper}
                 </p>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
+        )}
       </div>
 
       {/* Quick Actions */}
@@ -200,10 +328,11 @@ export default function AdminDashboard() {
               Add Your First Product
             </Link>
             <Link
-              href="/admin"
+              href="/admin/products"
               className="inline-flex items-center gap-2 px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm"
             >
-              Refresh
+              <FiEye className="h-4 w-4" />
+              View Products
             </Link>
           </div>
         </div>

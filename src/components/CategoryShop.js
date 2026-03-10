@@ -2,10 +2,24 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react'
 import Image from 'next/image'
-import { products, subcategoryNames } from '@/data/products'
+import { collection, getDocs } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import ProductCard from '@/components/ProductCard'
-import { FiFilter, FiX, FiChevronDown } from 'react-icons/fi'
+import { FiFilter, FiX, FiChevronDown, FiLoader } from 'react-icons/fi'
 import Link from 'next/link'
+
+// Keep subcategory names for display purposes
+const subcategoryNames = {
+  dress: 'Dress',
+  suit: 'Suit',
+  blazer: 'Blazer',
+  jacket: 'Jacket',
+  jeans: 'Jeans',
+  shirt: 'Shirt',
+  tshirt: 'T-Shirt',
+  hoodie: 'Hoodie',
+  coat: 'Coat'
+}
 
 const audienceMatchMap = {
   men: ['men', 'unisex'],
@@ -29,11 +43,35 @@ const categoryDescriptions = {
 }
 
 export default function CategoryShop({ category }) {
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
   const [selectedSubcategory, setSelectedSubcategory] = useState('all')
   const [sortBy, setSortBy] = useState('featured')
   const [priceRange, setPriceRange] = useState([0, 250])
   const [showFilters, setShowFilters] = useState(false)
   const filterRef = useRef(null)
+
+  // Fetch products from Firestore
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true)
+        const querySnapshot = await getDocs(collection(db, 'products'))
+        const productsData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        setProducts(productsData.filter(p => p.status === 'Active'))
+      } catch (err) {
+        console.error('Error fetching products:', err)
+        setProducts([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProducts()
+  }, [])
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -56,7 +94,7 @@ export default function CategoryShop({ category }) {
   const categoryProducts = useMemo(() => {
     if (!audienceMatchMap[category]) return []
     return products.filter(p => audienceMatchMap[category].includes(p.audience || 'unisex'))
-  }, [category])
+  }, [category, products])
 
   const availableSubcategories = useMemo(() => {
     const uniqueSubcategories = [...new Set(categoryProducts.map(p => p.subcategory))]
@@ -285,7 +323,14 @@ export default function CategoryShop({ category }) {
               </div>
 
               {/* Products Grid */}
-              {filteredProducts.length > 0 ? (
+              {loading ? (
+                <div className="flex items-center justify-center py-20 bg-white rounded-2xl border border-gray-100">
+                  <div className="text-center">
+                    <FiLoader className="animate-spin h-12 w-12 text-primary-600 mx-auto mb-4" />
+                    <p className="text-gray-600">Loading products...</p>
+                  </div>
+                </div>
+              ) : filteredProducts.length > 0 ? (
                 <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                   {filteredProducts.map(product => (
                     <ProductCard key={product.id} product={product} />

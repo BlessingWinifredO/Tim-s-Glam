@@ -3,9 +3,39 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { products, categories, subcategoryNames } from '@/data/products'
+import { collection, getDocs } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import ProductCard from '@/components/ProductCard'
-import { FiFilter, FiX, FiChevronDown } from 'react-icons/fi'
+import { FiFilter, FiX, FiChevronDown, FiLoader } from 'react-icons/fi'
+
+// Keep subcategory names for display purposes
+const subcategoryNames = {
+  // Modern Wear
+  dress: 'Dress',
+  suit: 'Suit',
+  blazer: 'Blazer',
+  jacket: 'Jacket',
+  jeans: 'Jeans',
+  shirt: 'Shirt',
+  tshirt: 'T-Shirt',
+  hoodie: 'Hoodie',
+  coat: 'Coat',
+  skirt: 'Skirt',
+  pants: 'Pants',
+  shorts: 'Shorts',
+  sweater: 'Sweater',
+  cardigan: 'Cardigan',
+  vest: 'Vest',
+  // Traditional Wear
+  saree: 'Saree',
+  lehenga: 'Lehenga',
+  kurta: 'Kurta',
+  wrapper: 'Wrapper',
+  agbada: 'Agbada',
+  jumpsuit: 'Jumpsuit',
+  croptop: 'Crop Top',
+  gown: 'Gown'
+}
 
 const audienceGroups = {
   adults: [
@@ -32,8 +62,18 @@ const audienceMatchMap = {
   girls: ['girls', 'unisex']
 }
 
+const traditionalSubcategoryValues = ['saree', 'lehenga', 'kurta', 'wrapper', 'agbada']
+const traditionalGroups = [
+  { id: 'adults-men', label: 'Adults: Men', category: 'adults', audience: 'men' },
+  { id: 'adults-women', label: 'Adults: Women', category: 'adults', audience: 'women' },
+  { id: 'kids-boys', label: 'Kids: Boys', category: 'kids', audience: 'boys' },
+  { id: 'kids-girls', label: 'Kids: Girls', category: 'kids', audience: 'girls' }
+]
+
 export default function Shop() {
   const router = useRouter()
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [selectedAudience, setSelectedAudience] = useState('all')
   const [selectedSubcategory, setSelectedSubcategory] = useState('all')
@@ -41,7 +81,51 @@ export default function Shop() {
   const [priceRange, setPriceRange] = useState([0, 250])
   const [showFilters, setShowFilters] = useState(false)
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
+  const [showTraditionalDropdown, setShowTraditionalDropdown] = useState(false)
+  const [selectedTraditionalGroup, setSelectedTraditionalGroup] = useState('none')
   const dropdownRef = useRef(null)
+  const traditionalDropdownRef = useRef(null)
+
+  const maxAvailablePrice = useMemo(() => {
+    const prices = products
+      .map(p => Number(p.price))
+      .filter(price => Number.isFinite(price) && price >= 0)
+
+    if (prices.length === 0) return 250
+    return Math.max(250, Math.ceil(Math.max(...prices)))
+  }, [products])
+
+  useEffect(() => {
+    setPriceRange(prev => {
+      if (prev[1] === 250) {
+        return [0, maxAvailablePrice]
+      }
+      return [0, Math.min(prev[1], maxAvailablePrice)]
+    })
+  }, [maxAvailablePrice])
+
+  // Fetch products from Firestore
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true)
+        const querySnapshot = await getDocs(collection(db, 'products'))
+        const productsData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        // Only include active products
+        setProducts(productsData.filter(p => p.status === 'Active'))
+      } catch (err) {
+        console.error('Error fetching products:', err)
+        setProducts([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProducts()
+  }, [])
 
   const availableAudienceOptions = useMemo(() => {
     if (selectedCategory === 'adults') return audienceGroups.adults
@@ -53,6 +137,9 @@ export default function Shop() {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowCategoryDropdown(false)
+      }
+      if (traditionalDropdownRef.current && !traditionalDropdownRef.current.contains(event.target)) {
+        setShowTraditionalDropdown(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -76,7 +163,7 @@ export default function Shop() {
       const second = subcategoryNames[b] || b
       return first.localeCompare(second)
     })
-  }, [selectedCategory, selectedAudience])
+  }, [products, selectedCategory, selectedAudience])
 
   const filteredProducts = useMemo(() => {
     let filtered = [...products]
@@ -93,7 +180,15 @@ export default function Shop() {
       filtered = filtered.filter(p => p.subcategory === selectedSubcategory)
     }
 
-    filtered = filtered.filter(p => p.price >= priceRange[0] && p.price <= priceRange[1])
+    if (selectedTraditionalGroup !== 'none') {
+      filtered = filtered.filter(product => traditionalSubcategoryValues.includes(product.subcategory))
+    }
+
+    filtered = filtered.filter(p => {
+      const productPrice = Number(p.price)
+      if (!Number.isFinite(productPrice)) return true
+      return productPrice >= priceRange[0] && productPrice <= priceRange[1]
+    })
 
     switch (sortBy) {
       case 'featured':
@@ -113,22 +208,45 @@ export default function Shop() {
     }
 
     return filtered
-  }, [selectedCategory, selectedAudience, selectedSubcategory, sortBy, priceRange])
+  }, [products, selectedCategory, selectedAudience, selectedSubcategory, selectedTraditionalGroup, sortBy, priceRange])
 
-  const activeFiltersCount = [selectedCategory, selectedAudience, selectedSubcategory].filter(v => v !== 'all').length
+  const activeFiltersCount = [selectedCategory, selectedAudience, selectedSubcategory].filter(v => v !== 'all').length + (selectedTraditionalGroup !== 'none' ? 1 : 0)
 
   const handleCategoryChange = (categoryId) => {
     setSelectedCategory(categoryId)
     setSelectedAudience('all')
     setSelectedSubcategory('all')
+    setSelectedTraditionalGroup('none')
+  }
+
+  const handleTraditionalGroupChange = (groupId) => {
+    setSelectedTraditionalGroup(groupId)
+    setSelectedSubcategory('all')
+
+    if (groupId === 'none') {
+      return
+    }
+
+    if (groupId === 'all-traditional') {
+      setSelectedCategory('all')
+      setSelectedAudience('all')
+      return
+    }
+
+    const selectedGroup = traditionalGroups.find(group => group.id === groupId)
+    if (!selectedGroup) return
+
+    setSelectedCategory(selectedGroup.category)
+    setSelectedAudience(selectedGroup.audience)
   }
 
   const resetFilters = () => {
     setSelectedCategory('all')
     setSelectedAudience('all')
     setSelectedSubcategory('all')
+    setSelectedTraditionalGroup('none')
     setSortBy('featured')
-    setPriceRange([0, 250])
+    setPriceRange([0, maxAvailablePrice])
   }
 
   return (
@@ -155,32 +273,37 @@ export default function Shop() {
       {/* Category Quick Switch - Dropdown Menu */}
       <section className="bg-white border-b">
         <div className="container-custom py-6">
-          <div className="max-w-sm" ref={dropdownRef}>
-            <button
-              onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-              className="w-full flex items-center justify-between bg-white border-2 border-primary-600 rounded-xl px-4 py-3 text-left hover:bg-primary-50 transition-colors"
-            >
-              <div>
-                <p className="font-bold text-primary-600">
-                  {selectedCategory === 'all' ? 'All Products' : selectedCategory === 'adults' ? 'Adults' : 'Kids'}
-                </p>
-                <p className="text-sm text-gray-500">
-                  {selectedCategory === 'all' && 'Full catalog view'}
-                  {selectedCategory === 'adults' && 'Men & Women wears'}
-                  {selectedCategory === 'kids' && 'Boys & Girls wears'}
-                </p>
-              </div>
-              <FiChevronDown
-                size={20}
-                className={`text-primary-600 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`}
-              />
-            </button>
+          <div className="flex flex-col lg:flex-row gap-4 max-w-4xl mx-auto" ref={dropdownRef}>
+            <div className="flex-1 relative">
+              <button
+                onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                className="w-full flex items-center justify-between bg-white border-2 border-primary-600 rounded-xl px-4 py-3 text-left hover:bg-primary-50 transition-colors"
+              >
+                <div>
+                  <p className="font-bold text-primary-600">
+                    {selectedCategory === 'all' ? 'All Products' : selectedCategory === 'adults' ? 'Adults' : 'Kids'}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {selectedCategory === 'all' && 'Full catalog view'}
+                    {selectedCategory === 'adults' && 'Men & Women wears'}
+                    {selectedCategory === 'kids' && 'Boys & Girls wears'}
+                  </p>
+                </div>
+                <FiChevronDown
+                  size={20}
+                  className={`text-primary-600 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`}
+                />
+              </button>
 
             {showCategoryDropdown && (
-              <div className="absolute mt-2 w-80 lg:w-[32rem] bg-white border border-gray-200 rounded-xl shadow-lg z-50">
+              <div className="absolute mt-2 w-80 lg:w-[32rem] bg-white border border-gray-200 rounded-xl shadow-lg z-40">
                 {/* All Products Option */}
                 <button
                   onClick={() => {
+                    setSelectedCategory('all')
+                    setSelectedAudience('all')
+                    setSelectedSubcategory('all')
+                    setSelectedTraditionalGroup('none')
                     setShowCategoryDropdown(false)
                   }}
                   className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 transition-colors"
@@ -287,189 +410,295 @@ export default function Shop() {
                 </div>
               </div>
             )}
-          </div>
-        </div>
-      </section>
+            </div>
 
-      <section className="section-padding py-10">
-        <div className="container-custom">
-          <div className="lg:grid lg:grid-cols-4 lg:gap-8">
-            {/* Filters Sidebar */}
-            <aside className={`lg:block ${showFilters ? 'block' : 'hidden'} mb-8 lg:mb-0`}>
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 sticky top-28">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold text-primary-700">Filters</h2>
+            <div className="flex-1 relative" ref={traditionalDropdownRef}>
+              <button
+                onClick={() => setShowTraditionalDropdown(!showTraditionalDropdown)}
+                className="w-full flex items-center justify-between bg-white border-2 border-primary-600 rounded-xl px-4 py-3 text-left hover:bg-primary-50 transition-colors"
+              >
+                <div>
+                  <p className="font-bold text-primary-600">Traditional Wears</p>
+                  <p className="text-sm text-gray-500">Ethnic & cultural collection</p>
+                </div>
+                <FiChevronDown
+                  size={20}
+                  className={`text-primary-600 transition-transform ${showTraditionalDropdown ? 'rotate-180' : ''}`}
+                />
+              </button>
+
+              {showTraditionalDropdown && (
+                <div className="absolute mt-2 w-80 lg:w-[32rem] bg-white border border-gray-200 rounded-xl shadow-lg z-40">
+                  {/* All Traditional Option */}
                   <button
-                    onClick={() => setShowFilters(false)}
-                    className="lg:hidden text-gray-500 hover:text-primary-500"
+                    onClick={() => {
+                      handleTraditionalGroupChange('all-traditional')
+                      setShowTraditionalDropdown(false)
+                    }}
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 transition-colors"
                   >
-                    <FiX size={24} />
+                    <p className="font-semibold text-gray-900">All Traditional Wears</p>
+                    <p className="text-sm text-gray-500">Full ethnic collection view</p>
                   </button>
-                </div>
 
-                {/* Audience Filter */}
-                <div className="mb-6">
-                  <h3 className="font-semibold text-gray-700 mb-3">Customer Group</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => setSelectedAudience('all')}
-                      className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                        selectedAudience === 'all'
-                          ? 'bg-gold-500 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      All
-                    </button>
-                    {availableAudienceOptions.map(option => (
-                      <button
-                        key={option.id}
-                        onClick={() => setSelectedAudience(option.id)}
-                        className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                          selectedAudience === option.id
-                            ? 'bg-gold-500 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Product Type Filter */}
-                <div className="mb-6">
-                  <h3 className="font-semibold text-gray-700 mb-3">Product Type</h3>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => setSelectedSubcategory('all')}
-                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                        selectedSubcategory === 'all'
-                          ? 'bg-primary-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      All
-                    </button>
-                    {availableSubcategories.map(sub => (
-                      <button
-                        key={sub}
-                        onClick={() => setSelectedSubcategory(sub)}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                          selectedSubcategory === sub
-                            ? 'bg-primary-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        {subcategoryNames[sub]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Price Range Filter */}
-                <div className="mb-6">
-                  <h3 className="font-semibold text-gray-700 mb-3">Price Range</h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">From ${priceRange[0]}</span>
-                      <span className="text-sm text-gray-600">Up to ${priceRange[1]}</span>
+                  {/* Mobile Menu */}
+                  <div className="lg:hidden">
+                    <div className="border-b border-gray-100">
+                      <p className="w-full text-left px-4 py-2 font-semibold text-primary-600 bg-primary-50">
+                        Adults
+                      </p>
+                      <div className="bg-gray-50 px-4 py-2 space-y-2">
+                        <button
+                          onClick={() => {
+                            handleTraditionalGroupChange('adults-men')
+                            setShowTraditionalDropdown(false)
+                          }}
+                          className="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors"
+                        >
+                          Men
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleTraditionalGroupChange('adults-women')
+                            setShowTraditionalDropdown(false)
+                          }}
+                          className="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors"
+                        >
+                          Women
+                        </button>
+                      </div>
                     </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="250"
-                      value={priceRange[1]}
-                      onChange={(e) => setPriceRange([0, parseInt(e.target.value)])}
-                      className="w-full"
-                    />
+
+                    <div>
+                      <p className="w-full text-left px-4 py-2 font-semibold text-primary-600 bg-primary-50">
+                        Kids
+                      </p>
+                      <div className="bg-gray-50 px-4 py-2 space-y-2">
+                        <button
+                          onClick={() => {
+                            handleTraditionalGroupChange('kids-boys')
+                            setShowTraditionalDropdown(false)
+                          }}
+                          className="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors"
+                        >
+                          Boys
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleTraditionalGroupChange('kids-girls')
+                            setShowTraditionalDropdown(false)
+                          }}
+                          className="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors"
+                        >
+                          Girls
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                {/* Reset Button */}
-                <button
-                  onClick={resetFilters}
-                  className="w-full btn-outline text-sm py-2"
-                >
-                  Reset Filters
-                </button>
-              </div>
-            </aside>
-
-            {/* Products Grid */}
-            <div className="lg:col-span-3 space-y-5">
-              {/* Toolbar */}
-              <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between gap-4 flex-wrap">
-                  <button
-                    onClick={() => setShowFilters(!showFilters)}
-                    className="lg:hidden inline-flex items-center gap-2 text-primary-600 font-semibold"
-                  >
-                    <FiFilter size={20} />
-                    Filters
-                  </button>
-
-                  <p className="text-gray-600 text-sm md:text-base">
-                    <span className="font-semibold text-primary-600">{filteredProducts.length}</span> products found
-                    {activeFiltersCount > 0 && (
-                      <span className="ml-2 text-gray-400">• {activeFiltersCount} active filter(s)</span>
-                    )}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <label className="text-gray-600 text-sm hidden sm:block">Filter by:</label>
-                    <select
-                      value={selectedAudience}
-                      onChange={(e) => setSelectedAudience(e.target.value)}
-                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500"
-                    >
-                      <option value="all">All Categories</option>
-                      <option value="men">Men</option>
-                      <option value="women">Women</option>
-                      <option value="boys">Boys</option>
-                      <option value="girls">Girls</option>
-                    </select>
+                  {/* Desktop Menu */}
+                  <div className="hidden lg:block p-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => {
+                          handleTraditionalGroupChange('adults-men')
+                          setShowTraditionalDropdown(false)
+                        }}
+                        className="w-full text-left px-4 py-3 rounded-lg text-sm font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors"
+                      >
+                        Adults: Men
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleTraditionalGroupChange('adults-women')
+                          setShowTraditionalDropdown(false)
+                        }}
+                        className="w-full text-left px-4 py-3 rounded-lg text-sm font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors"
+                      >
+                        Adults: Women
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleTraditionalGroupChange('kids-boys')
+                          setShowTraditionalDropdown(false)
+                        }}
+                        className="w-full text-left px-4 py-3 rounded-lg text-sm font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors"
+                      >
+                        Kids: Boys
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleTraditionalGroupChange('kids-girls')
+                          setShowTraditionalDropdown(false)
+                        }}
+                        className="w-full text-left px-4 py-3 rounded-lg text-sm font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors"
+                      >
+                        Kids: Girls
+                      </button>
+                    </div>
                   </div>
-                </div>
-
-                {(selectedCategory !== 'all' || selectedAudience !== 'all' || selectedSubcategory !== 'all') && (
-                  <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-100">
-                    {selectedCategory !== 'all' && (
-                      <span className="px-3 py-1 rounded-full bg-primary-50 text-primary-700 text-xs font-semibold">
-                        {selectedCategory === 'adults' ? 'Adults' : 'Kids'}
-                      </span>
-                    )}
-                    {selectedAudience !== 'all' && (
-                      <span className="px-3 py-1 rounded-full bg-gold-50 text-gold-700 text-xs font-semibold capitalize">
-                        {selectedAudience}
-                      </span>
-                    )}
-                    {selectedSubcategory !== 'all' && (
-                      <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-semibold">
-                        {subcategoryNames[selectedSubcategory]}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Products Grid */}
-              {filteredProducts.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {filteredProducts.map(product => (
-                    <ProductCard key={product.id} product={product} />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
-                  <p className="text-xl text-gray-600 mb-3">No products found</p>
-                  <p className="text-gray-400 mb-6">Try adjusting your category, customer group, or price filters.</p>
-                  <button onClick={resetFilters} className="btn-primary">
-                    Reset Filters
-                  </button>
                 </div>
               )}
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Filter Toolbar */}
+      <section className="sticky top-16 z-20 bg-white border-b border-gray-200 shadow-sm">
+        <div className="container-custom py-3">
+          <div className="flex items-center justify-between gap-4">
+            {/* Filters Button */}
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-lg font-semibold shadow-sm hover:bg-primary-700 active:scale-95 transition-all"
+            >
+              <FiFilter size={20} />
+              Filters
+            </button>
+
+            {/* Product Count */}
+            <div className="flex-1">
+              <p className="text-gray-600 text-sm">
+                <span className="font-semibold text-primary-600">{filteredProducts.length}</span> products found
+              </p>
+            </div>
+
+            {/* Filter Dropdown */}
+            <div className="flex items-center gap-2">
+              <label className="text-gray-600 text-sm font-medium">Filter by:</label>
+              <select
+                value={selectedCategory}
+                onChange={(e) => handleCategoryChange(e.target.value)}
+                className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+              >
+                <option value="all">All Categories</option>
+                <option value="adults">Adults</option>
+                <option value="kids">Kids</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Filter Modal Backdrop */}
+      {showFilters && (
+        <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setShowFilters(false)} />
+      )}
+
+      {/* Filter Modal */}
+      {showFilters && (
+        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-2xl bg-white rounded-2xl shadow-2xl">
+          <div className="p-8">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-primary-700">Filters</h2>
+              <button
+                onClick={() => setShowFilters(false)}
+                className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 text-gray-600 hover:text-primary-600 transition-colors"
+              >
+                <FiX size={24} />
+              </button>
+            </div>
+
+            <div className="space-y-8">
+              {/* Gender Categories Section */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Gender</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {allAudienceOptions.map(option => (
+                    <button
+                      key={option.id}
+                      onClick={() => setSelectedAudience(option.id)}
+                      className={`px-4 py-3 rounded-lg font-semibold transition-all text-center ${
+                        selectedAudience === option.id
+                          ? 'bg-primary-600 text-white shadow-lg shadow-primary-200'
+                          : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Product Type Section */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Product Type</h3>
+                <div className="flex flex-wrap gap-2.5">
+                  <button
+                    onClick={() => setSelectedSubcategory('all')}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      selectedSubcategory === 'all'
+                        ? 'bg-primary-600 text-white shadow-lg shadow-primary-200'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    All
+                  </button>
+                  {availableSubcategories.map(sub => (
+                    <button
+                      key={sub}
+                      onClick={() => setSelectedSubcategory(sub)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                        selectedSubcategory === sub
+                          ? 'bg-primary-600 text-white shadow-lg shadow-primary-200'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {subcategoryNames[sub]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="mt-8 pt-6 border-t border-gray-200 flex gap-3">
+              <button
+                onClick={() => {
+                  resetFilters()
+                  setShowFilters(false)
+                }}
+                className="flex-1 px-4 py-3 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
+              >
+                Reset
+              </button>
+              <button
+                onClick={() => setShowFilters(false)}
+                className="flex-1 px-4 py-3 rounded-lg bg-primary-600 text-white font-semibold hover:bg-primary-700 transition-colors"
+              >
+                Apply Filters
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <section className="section-padding py-10">
+        <div className="container-custom">
+          {loading ? (
+            <div className="flex items-center justify-center py-20 bg-white rounded-2xl border border-gray-100">
+              <div className="text-center">
+                <FiLoader className="animate-spin h-12 w-12 text-primary-600 mx-auto mb-4" />
+                <p className="text-gray-600">Loading products...</p>
+              </div>
+            </div>
+          ) : filteredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
+              {filteredProducts.map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
+              <p className="text-xl text-gray-600 mb-3">No products found</p>
+              <p className="text-gray-400 mb-6">Try adjusting your category selection.</p>
+              <button onClick={resetFilters} className="btn-primary">
+                Reset Filters
+              </button>
+            </div>
+          )}
         </div>
       </section>
 

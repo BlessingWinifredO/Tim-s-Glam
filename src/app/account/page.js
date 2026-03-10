@@ -3,12 +3,22 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { FiMail, FiLock, FiUser, FiArrowRight, FiEye, FiEyeOff, FiLogOut, FiShield } from 'react-icons/fi'
 import { FcGoogle } from 'react-icons/fc'
 import { useAuth } from '@/context/AuthContext'
 
 export default function AccountPage() {
-  const { user, loading, signInWithEmail, signUpWithEmail, signInWithGoogle, logout } = useAuth()
+  const router = useRouter()
+  const {
+    user,
+    loading,
+    signInWithEmail,
+    signUpWithEmail,
+    signInWithGoogle,
+    requestVerificationForExistingUser,
+    logout,
+  } = useAuth()
   const [mode, setMode] = useState('signin')
   const [formData, setFormData] = useState({
     fullName: '',
@@ -182,12 +192,20 @@ export default function AccountPage() {
         await signInWithEmail({ email: formData.email, password: formData.password })
         setAuthMessage('Signed in successfully.')
       } else {
-        await signUpWithEmail({
+        const result = await signUpWithEmail({
           fullName: formData.fullName,
           email: formData.email,
           password: formData.password,
         })
-        setAuthMessage('Account created successfully.')
+
+        const params = new URLSearchParams({ email: formData.email.toLowerCase() })
+        if (result?.code && process.env.NODE_ENV !== 'production') {
+          params.set('devCode', result.code)
+        }
+        params.set('mailSent', result?.emailSent ? '1' : '0')
+
+        router.push(`/verify-email?${params.toString()}`)
+        return
       }
 
       setSubmitted(true)
@@ -198,7 +216,32 @@ export default function AccountPage() {
         confirmPassword: '',
       })
     } catch (error) {
-      setAuthError(error.message || 'Authentication failed. Please try again.')
+      const message = error?.message || 'Authentication failed. Please try again.'
+      const emailInUse = message.includes('auth/email-already-in-use')
+      const needsVerification = message.toLowerCase().includes('verify your email')
+
+      if ((mode === 'signup' && emailInUse) || (mode === 'signin' && needsVerification)) {
+        try {
+          const result = await requestVerificationForExistingUser({
+            email: formData.email,
+            password: formData.password,
+          })
+
+          const params = new URLSearchParams({ email: formData.email.toLowerCase() })
+          if (result?.code && process.env.NODE_ENV !== 'production') {
+            params.set('devCode', result.code)
+          }
+          params.set('mailSent', result?.emailSent ? '1' : '0')
+
+          router.push(`/verify-email?${params.toString()}`)
+          return
+        } catch (verificationError) {
+          setAuthError(verificationError?.message || 'Could not send verification code. Please try again.')
+          return
+        }
+      }
+
+      setAuthError(message)
     } finally {
       setIsSubmitting(false)
     }
@@ -214,7 +257,7 @@ export default function AccountPage() {
       setAuthMessage('Signed in with Google successfully.')
       setSubmitted(true)
     } catch (error) {
-      setAuthError(error.message || 'Google sign in failed. Please try again.')
+      setAuthError(error.message || 'Could not send password reset email.')
     } finally {
       setIsSubmitting(false)
     }
@@ -383,7 +426,10 @@ export default function AccountPage() {
 
               {mode === 'signin' && (
                 <div className="text-right">
-                  <Link href="#" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
+                  <Link
+                    href="/forgot-password"
+                    className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                  >
                     Forgot password?
                   </Link>
                 </div>

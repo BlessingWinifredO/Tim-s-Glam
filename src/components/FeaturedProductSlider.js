@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 import ProductCard from './ProductCard'
 
@@ -29,13 +29,19 @@ export default function FeaturedProductSlider({ products }) {
 
   const maxIndex = Math.max(0, products.length - itemsPerView)
 
-  const nextSlide = () => {
-    setCurrentIndex((prev) => (prev >= maxIndex ? 0 : prev + 1))
-  }
+  const nextSlide = useCallback(() => {
+    setCurrentIndex((prev) => {
+      const maxIdx = Math.max(0, products.length - itemsPerView)
+      return prev >= maxIdx ? 0 : prev + 1
+    })
+  }, [products.length, itemsPerView])
 
-  const prevSlide = () => {
-    setCurrentIndex((prev) => (prev <= 0 ? maxIndex : prev - 1))
-  }
+  const prevSlide = useCallback(() => {
+    setCurrentIndex((prev) => {
+      const maxIdx = Math.max(0, products.length - itemsPerView)
+      return prev <= 0 ? maxIdx : prev - 1
+    })
+  }, [products.length, itemsPerView])
 
   // Auto-advance slider
   useEffect(() => {
@@ -44,7 +50,7 @@ export default function FeaturedProductSlider({ products }) {
     }, 5000)
 
     return () => clearInterval(timer)
-  }, [currentIndex, maxIndex, nextSlide])
+  }, [nextSlide])
 
   const translateValue = -(currentIndex * (100 / itemsPerView))
 

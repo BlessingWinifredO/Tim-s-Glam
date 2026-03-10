@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { useRouter, useParams } from 'next/navigation'
 import { doc, getDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -14,7 +15,21 @@ import {
   FiTrash
 } from 'react-icons/fi'
 
-const categories = ['Men', 'Women', 'Kids', 'Unisex']
+const ageGroups = ['adults', 'kids']
+const audiences = [
+  { value: 'men', label: 'Men' },
+  { value: 'women', label: 'Women' },
+  { value: 'boys', label: 'Boys' },
+  { value: 'girls', label: 'Girls' },
+  { value: 'unisex', label: 'Unisex' }
+]
+const traditionalTypeValues = new Set(['saree', 'lehenga', 'kurta', 'wrapper', 'agbada'])
+const traditionalWearGroups = [
+  { id: 'adults-men', label: 'Adults: Men', category: 'adults', audience: 'men' },
+  { id: 'adults-women', label: 'Adults: Women', category: 'adults', audience: 'women' },
+  { id: 'kids-boys', label: 'Kids: Boys', category: 'kids', audience: 'boys' },
+  { id: 'kids-girls', label: 'Kids: Girls', category: 'kids', audience: 'girls' }
+]
 const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'One Size']
 
 export default function EditProductPage() {
@@ -31,12 +46,16 @@ export default function EditProductPage() {
   const [imageUrl, setImageUrl] = useState('')
   const [imagePreview, setImagePreview] = useState('')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [selectedTraditionalGroup, setSelectedTraditionalGroup] = useState('none')
+  const isTraditionalMode = selectedTraditionalGroup !== 'none'
 
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     price: '',
-    category: 'Men',
+    category: 'adults',
+    audience: 'men',
+    subcategory: 'tshirt',
     sizes: [],
     stock: '',
     sku: '',
@@ -61,7 +80,9 @@ export default function EditProductPage() {
           name: data.name || '',
           description: data.description || '',
           price: data.price || '',
-          category: data.category || 'Men',
+          category: data.category || 'adults',
+          audience: data.audience || 'men',
+          subcategory: data.subcategory || 'tshirt',
           sizes: data.sizes || [],
           stock: data.stock || '',
           sku: data.sku || '',
@@ -86,6 +107,18 @@ export default function EditProductPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File size must be less than 5MB')
+      return
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file')
+      return
+    }
+
     setUploading(true)
     setError('')
 
@@ -97,25 +130,29 @@ export default function EditProductPage() {
       }
       reader.readAsDataURL(file)
 
-      // Upload to Cloudinary
+      // Upload to our API endpoint
       const formDataCloud = new FormData()
       formDataCloud.append('file', file)
-      formDataCloud.append('upload_preset', 'tims_glam_unsigned')
 
-      const response = await fetch(
-        'https://api.cloudinary.com/v1_1/dh8gvxcqf/image/upload',
-        {
-          method: 'POST',
-          body: formDataCloud,
-        }
-      )
-
-      if (!response.ok) throw new Error('Failed to upload image')
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formDataCloud,
+      })
 
       const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to upload image')
+      }
+
+      if (!data.secure_url) {
+        throw new Error('No image URL received from server')
+      }
+
       setImageUrl(data.secure_url)
       setError('')
     } catch (err) {
+      console.error('Image upload error:', err)
       setError(`Image upload failed: ${err.message}`)
       setImagePreview(imageUrl)
     } finally {
@@ -130,6 +167,34 @@ export default function EditProductPage() {
       [name]: value
     }))
   }
+
+  const applyTraditionalGroup = (groupId) => {
+    setSelectedTraditionalGroup(groupId)
+
+    if (groupId === 'none') return
+
+    const selectedGroup = traditionalWearGroups.find(group => group.id === groupId)
+    if (!selectedGroup) return
+
+    setFormData(prev => ({
+      ...prev,
+      category: selectedGroup.category,
+      audience: selectedGroup.audience,
+      subcategory: traditionalTypeValues.has(prev.subcategory) ? prev.subcategory : 'kurta'
+    }))
+  }
+
+  useEffect(() => {
+    if (!traditionalTypeValues.has(formData.subcategory)) {
+      setSelectedTraditionalGroup('none')
+      return
+    }
+
+    const matchedGroup = traditionalWearGroups.find(
+      group => group.category === formData.category && group.audience === formData.audience
+    )
+    setSelectedTraditionalGroup(matchedGroup ? matchedGroup.id : 'none')
+  }, [formData.category, formData.audience, formData.subcategory])
 
   const toggleSize = (size) => {
     setFormData(prev => ({
@@ -183,6 +248,8 @@ export default function EditProductPage() {
         description: formData.description,
         price: parseFloat(formData.price),
         category: formData.category,
+        audience: formData.audience,
+        subcategory: formData.subcategory,
         sizes: formData.sizes,
         stock: parseInt(formData.stock),
         sku: formData.sku,
@@ -196,7 +263,11 @@ export default function EditProductPage() {
         router.push('/admin/products')
       }, 2000)
     } catch (err) {
-      setError(`Failed to update product: ${err.message}`)
+      const message =
+        err?.code === 'permission-denied'
+          ? 'Failed to update product: Firestore permission denied. Ensure admin is signed in and Firestore rules allow authenticated writes to products.'
+          : `Failed to update product: ${err.message}`
+      setError(message)
     } finally {
       setSaving(false)
     }
@@ -213,7 +284,11 @@ export default function EditProductPage() {
         router.push('/admin/products')
       }, 1500)
     } catch (err) {
-      setError(`Failed to delete product: ${err.message}`)
+      const message =
+        err?.code === 'permission-denied'
+          ? 'Failed to delete product: Firestore permission denied. Ensure admin is signed in and Firestore rules allow authenticated writes to products.'
+          : `Failed to delete product: ${err.message}`
+      setError(message)
       setDeleting(false)
     }
   }
@@ -232,7 +307,7 @@ export default function EditProductPage() {
       {/* Header */}
       <div className="mb-8">
         <button
-          onClick={() => router.back()}
+          onClick={() => router.push('/admin/products')}
           className="flex items-center gap-2 text-primary-600 hover:text-primary-700 mb-4 font-medium transition-colors"
         >
           <FiArrowLeft className="h-5 w-5" />
@@ -264,205 +339,306 @@ export default function EditProductPage() {
       )}
 
       <form onSubmit={handleUpdate} className="space-y-8">
-        {/* Image Upload Section */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Product Image</h2>
-          
-          <div className="space-y-4">
-            {imagePreview ? (
-              <div className="relative">
-                <img
-                  src={imagePreview}
-                  alt="Product preview"
-                  className="w-full max-w-sm h-64 object-cover rounded-lg"
-                />
-                {imagePreview !== imageUrl && (
-                  <div className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 rounded text-xs font-medium">
-                    New Image
+        {/* Two Column Layout: Form Left, Image Right */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column: Form Fields */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Basic Information */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-900 mb-6">Basic Information</h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Product Name *
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description *
+                  </label>
+                  <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    rows="4"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      SKU
+                    </label>
+                    <input
+                      type="text"
+                      name="sku"
+                      value={formData.sku}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Age Group *
+                    </label>
+                    <select
+                      name="category"
+                      value={formData.category}
+                      onChange={handleInputChange}
+                      disabled={isTraditionalMode}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    >
+                      {ageGroups.map(group => (
+                        <option key={group} value={group}>
+                          {group.charAt(0).toUpperCase() + group.slice(1)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Gender/Audience *
+                    </label>
+                    <select
+                      name="audience"
+                      value={formData.audience}
+                      onChange={handleInputChange}
+                      disabled={isTraditionalMode}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    >
+                      {audiences.map(aud => (
+                        <option key={aud.value} value={aud.value}>{aud.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Product Type *
+                    </label>
+                    <input
+                      type="text"
+                      name="subcategory"
+                      value={formData.subcategory}
+                      onChange={handleInputChange}
+                      readOnly={isTraditionalMode}
+                      placeholder="e.g., kaftan, gown, blazer"
+                      className={`w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                        isTraditionalMode ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''
+                      }`}
+                    />
+                    {isTraditionalMode && (
+                      <p className="text-xs text-amber-700 mt-1">
+                        Traditional mode is active. Edit product type in the Traditional Wear section below.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <h3 className="text-sm font-semibold text-amber-900">Traditional Wear Section</h3>
+                    <button
+                      type="button"
+                      onClick={() => applyTraditionalGroup('none')}
+                      className="text-xs font-semibold text-amber-800 hover:text-amber-900"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <p className="text-xs text-amber-800 mb-3">
+                    Select where this traditional wear belongs. This keeps Edit Product aligned with shop traditional categories.
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    {traditionalWearGroups.map(group => (
+                      <button
+                        key={group.id}
+                        type="button"
+                        onClick={() => applyTraditionalGroup(group.id)}
+                        className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all border ${
+                          selectedTraditionalGroup === group.id
+                            ? 'bg-amber-600 text-white border-amber-600'
+                            : 'bg-white text-amber-900 border-amber-200 hover:bg-amber-100'
+                        }`}
+                      >
+                        {group.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-amber-900 mb-2">
+                      Traditional Product Type
+                    </label>
+                    <input
+                      type="text"
+                      name="subcategory"
+                      value={formData.subcategory}
+                      onChange={handleInputChange}
+                      placeholder="e.g., saree, agbada, kaftan"
+                      className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Pricing & Stock */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-900 mb-6">Pricing & Stock</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Price ($) *
+                  </label>
+                  <input
+                    type="number"
+                    name="price"
+                    value={formData.price}
+                    onChange={handleInputChange}
+                    min="0"
+                    step="0.01"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Stock Quantity *
+                  </label>
+                  <input
+                    type="number"
+                    name="stock"
+                    value={formData.stock}
+                    onChange={handleInputChange}
+                    min="0"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Status
+                  </label>
+                  <select
+                    name="status"
+                    value={formData.status}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Draft">Draft</option>
+                    <option value="Discontinued">Discontinued</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Sizes Section */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Available Sizes *</h2>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {sizes.map(size => (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => toggleSize(size)}
+                    className={`p-3 rounded-lg font-medium transition-all border-2 ${
+                      formData.sizes.includes(size)
+                        ? 'bg-primary-100 border-primary-500 text-primary-700'
+                        : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Product Image */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 sticky top-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Product Image</h2>
+              
+              <div className="space-y-4">
+                {imagePreview ? (
+                  <div className="relative w-full h-64">
+                    <Image
+                      src={imagePreview}
+                      alt="Product preview"
+                      fill
+                      unoptimized
+                      className="object-cover rounded-lg"
+                    />
+                    {imagePreview !== imageUrl && (
+                      <div className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 rounded text-xs font-medium">
+                        New Image
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImagePreview(imageUrl)
+                      }}
+                      className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-lg hover:bg-red-600 transition-colors"
+                    >
+                      <FiX className="h-5 w-5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary-500 transition-colors">
+                    <FiImage className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                    <p className="text-gray-600 font-medium text-sm">No image yet</p>
+                    <p className="text-xs text-gray-500">Upload to display</p>
                   </div>
                 )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setImagePreview(imageUrl)
-                  }}
-                  className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-lg hover:bg-red-600 transition-colors"
-                >
-                  <FiX className="h-5 w-5" />
-                </button>
-              </div>
-            ) : (
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-primary-500 transition-colors">
-                <FiImage className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-600 font-medium">Replace Product Image</p>
-                <p className="text-sm text-gray-500">PNG, JPG up to 5MB</p>
-              </div>
-            )}
 
-            <label className={`block cursor-pointer ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                disabled={uploading}
-                className="hidden"
-              />
-              <span className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
-                imagePreview !== imageUrl
-                  ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  : 'bg-primary-600 text-white hover:bg-primary-700'
-              } ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                {uploading ? (
-                  <>
-                    <FiLoader className="h-5 w-5 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <FiUpload className="h-5 w-5" />
-                    {imagePreview !== imageUrl ? 'Change Image' : 'Replace Image'}
-                  </>
-                )}
-              </span>
-            </label>
-          </div>
-        </div>
-
-        {/* Basic Info Section */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900 mb-6">Basic Information</h2>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Product Name *
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description *
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                rows="4"
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  SKU
+                <label className={`block cursor-pointer ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    disabled={uploading}
+                    className="hidden"
+                  />
+                  <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all w-full justify-center text-sm ${
+                    imagePreview !== imageUrl
+                      ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      : 'bg-primary-600 text-white hover:bg-primary-700'
+                  } ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    {uploading ? (
+                      <>
+                        <FiLoader className="h-4 w-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <FiUpload className="h-4 w-4" />
+                        {imagePreview !== imageUrl ? 'Change' : 'Replace'}
+                      </>
+                    )}
+                  </span>
                 </label>
-                <input
-                  type="text"
-                  name="sku"
-                  value={formData.sku}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Category *
-                </label>
-                <select
-                  name="category"
-                  value={formData.category}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Pricing & Stock Section */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900 mb-6">Pricing & Stock</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Price ($) *
-              </label>
-              <input
-                type="number"
-                name="price"
-                value={formData.price}
-                onChange={handleInputChange}
-                min="0"
-                step="0.01"
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Stock Quantity *
-              </label>
-              <input
-                type="number"
-                name="stock"
-                value={formData.stock}
-                onChange={handleInputChange}
-                min="0"
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status
-              </label>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="Active">Active</option>
-                <option value="Draft">Draft</option>
-                <option value="Discontinued">Discontinued</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Sizes Section */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Available Sizes *</h2>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {sizes.map(size => (
-              <button
-                key={size}
-                type="button"
-                onClick={() => toggleSize(size)}
-                className={`p-3 rounded-lg font-medium transition-all border-2 ${
-                  formData.sizes.includes(size)
-                    ? 'bg-primary-100 border-primary-500 text-primary-700'
-                    : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                {size}
-              </button>
-            ))}
           </div>
         </div>
 
@@ -481,7 +657,7 @@ export default function EditProductPage() {
           <div className="flex gap-4">
             <button
               type="button"
-              onClick={() => router.back()}
+              onClick={() => router.push('/admin/products')}
               className="px-6 py-3 border border-gray-200 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
               disabled={saving}
             >

@@ -15,10 +15,11 @@ export default function AdminSignIn() {
   const [submitError, setSubmitError] = useState('')
 
   useEffect(() => {
-    if (isAdminAuthenticated) {
+    // Only redirect if authenticated and not loading
+    if (isAdminAuthenticated && !loading) {
       router.push('/admin')
     }
-  }, [isAdminAuthenticated, router])
+  }, [isAdminAuthenticated, loading, router])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -30,9 +31,24 @@ export default function AdminSignIn() {
     }
 
     const result = await adminSignIn(email, password)
-    if (!result.success) {
+    if (result.success) {
+      // Successfully signed in, navigate to admin dashboard
+      router.push('/admin')
+    } else {
       setSubmitError(result.error)
     }
+  }
+
+  // Show loading if currently checking authentication
+  if (loading || isAdminAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-white">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -67,12 +83,11 @@ export default function AdminSignIn() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@timsgam.com"
+                  placeholder="Enter admin email"
                   className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-all"
                   disabled={loading}
                 />
               </div>
-              <p className="text-xs text-gray-400 mt-1">Default: admin@timsgam.com</p>
             </div>
 
             {/* Password Field */}
@@ -100,7 +115,6 @@ export default function AdminSignIn() {
                   {showPassword ? '👁️' : '👁️‍🗨️'}
                 </button>
               </div>
-              <p className="text-xs text-gray-400 mt-1">Default: TimsGlam@Admin2026</p>
             </div>
 
             {/* Error Messages */}
@@ -131,20 +145,6 @@ export default function AdminSignIn() {
               )}
             </button>
           </form>
-
-          {/* Divider */}
-          <div className="flex items-center gap-4 my-6">
-            <div className="flex-1 h-px bg-gray-200"></div>
-            <p className="text-sm text-gray-400">Demo Credentials</p>
-            <div className="flex-1 h-px bg-gray-200"></div>
-          </div>
-
-          {/* Demo Credentials Box */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-900">
-            <p className="font-semibold mb-2">📋 Use these credentials to sign in:</p>
-            <p className="font-mono text-xs mb-1">Email: <span className="font-bold">admin@timsgam.com</span></p>
-            <p className="font-mono text-xs">Password: <span className="font-bold">TimsGlam@Admin2026</span></p>
-          </div>
 
           {/* Links */}
           <div className="mt-6 text-center">
