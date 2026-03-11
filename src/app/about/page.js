@@ -1,6 +1,5 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import TeamMemberImage from '@/components/TeamMemberImage'
 import { FiAward, FiUsers, FiHeart, FiTrendingUp, FiShield, FiStar, FiPackage, FiGlobe, FiCheck } from 'react-icons/fi'
 
 export default function About() {
@@ -41,8 +40,7 @@ export default function About() {
       description: 'Blessing W.O founded TIM\'S GLAM in 2022 to combine technology and fashion. As both CEO and CTO, he leads the company\'s vision, strategy, and technical development, ensuring the platform is innovative, reliable, and designed to help independent designers grow globally.',
       focus: 'Vision, Strategy & Technical Leadership',
       image: '/team/CEOBlessing.jpg',
-      fallbackImage: '/about/about-1.jpg',
-      imageClassName: 'object-contain bg-white p-3 group-hover:scale-100'
+      fallbackImage: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=900&q=80'
     },
     {
       name: 'Wenny',
@@ -50,15 +48,14 @@ export default function About() {
       description: 'Wenny leads the creative vision of TIM\'S GLAM, shaping the brand identity, visual style, and presentation of fashion collections. She ensures the platform reflects modern fashion trends and provides an engaging experience for both designers and shoppers.',
       focus: 'Brand Identity & Creative Direction',
       image: '/team/Wenny.jpg',
-      fallbackImage: '/about/about-2.jpg'
+      fallbackImage: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80'
     },
     {
       name: 'Fatima',
       role: 'Operations & Strategy Manager',
       description: 'Fatima brings expertise in project management and business analysis. She ensures TIM\'S GLAM runs efficiently, coordinates cross-functional initiatives, and provides insights that drive business growth.',
       focus: 'Operations, Analysis & Strategic Growth',
-      image: '/about/about-3.jpg',
-      fallbackImage: '/about/about-3.jpg'
+      image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=900&q=80'
     }
   ]
 
@@ -194,11 +191,12 @@ export default function About() {
             {team.map((member, index) => (
               <div key={index} className="group bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-lg hover:shadow-2xl transition-all duration-300">
                 <div className="relative h-72 overflow-hidden">
-                  <TeamMemberImage
+                  <Image
                     src={member.image}
-                    fallbackSrc={member.fallbackImage}
                     alt={member.name}
-                    imageClassName={member.imageClassName}
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-primary-900/55 via-transparent to-transparent"></div>
                   <div className="absolute bottom-4 left-4 right-4">
@@ -222,7 +220,7 @@ export default function About() {
       <section className="section-padding relative overflow-hidden">
         <div className="absolute inset-0">
           <Image
-            src="/about/about-4.jpg"
+            src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=2000&q=80"
             alt="Sustainability"
             fill
             className="object-cover"

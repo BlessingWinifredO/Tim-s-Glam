@@ -228,6 +228,23 @@ export default function AddProductPage() {
       }
       const docRef = await addDoc(collection(db, 'products'), productData)
 
+      if (productData.status === 'Active') {
+        try {
+          await fetch('/api/notify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'newProductBroadcast',
+              productId: docRef.id,
+              productName: productData.name,
+              price: productData.price,
+            }),
+          })
+        } catch {
+          // Do not block product creation if email broadcast fails.
+        }
+      }
+
       setSuccess(true)
       // Redirect to products page after 2 seconds
       setTimeout(() => {

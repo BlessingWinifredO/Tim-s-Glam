@@ -10,17 +10,21 @@ import {
   FiHome, 
   FiPackage, 
   FiShoppingBag, 
+  FiEdit3,
   FiUsers, 
   FiSettings,
   FiLogOut,
-  FiChevronRight
+  FiChevronRight,
+  FiMail
 } from 'react-icons/fi'
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: FiHome, color: 'text-blue-400' },
   { name: 'Products', href: '/admin/products', icon: FiPackage, color: 'text-purple-400' },
+  { name: 'Blog', href: '/admin/blog', icon: FiEdit3, color: 'text-emerald-400' },
   { name: 'Orders', href: '/admin/orders', icon: FiShoppingBag, color: 'text-green-400' },
   { name: 'Customers', href: '/admin/customers', icon: FiUsers, color: 'text-pink-400' },
+  { name: 'Notifications', href: '/admin/notifications', icon: FiMail, color: 'text-cyan-400' },
   { name: 'Settings', href: '/admin/settings', icon: FiSettings, color: 'text-yellow-400' },
 ]
 

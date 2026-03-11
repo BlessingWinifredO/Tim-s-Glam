@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { doc, getDoc, collection, getDocs, query, where, limit } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useCart } from '@/context/CartContext'
+import { getAvailableStock, isProductPubliclyAvailable, isProductSold } from '@/lib/productAvailability'
 import { FiShoppingCart, FiHeart, FiCheck, FiArrowLeft, FiTruck, FiRefreshCw, FiShield, FiLoader } from 'react-icons/fi'
 import ProductCard from '@/components/ProductCard'
 
@@ -78,10 +79,14 @@ export default function ProductDetail() {
     }
   }, [params.id])
 
+  const availableStock = getAvailableStock(product)
+  const maxQuantity = Number.isFinite(availableStock) ? Math.max(1, availableStock) : quantity
+
   const handleAddToCart = () => {
+    if (!product || availableStock <= 0) return
     const sizeToUse = selectedSize || product.sizes[0] || 'M'
     const colorToUse = selectedColor || product.colors[0] || 'Default'
-    addToCart(product, sizeToUse, colorToUse, quantity)
+    addToCart(product, sizeToUse, colorToUse, Math.min(quantity, maxQuantity))
     setAddedToCart(true)
     setTimeout(() => setAddedToCart(false), 2000)
   }
@@ -140,6 +145,20 @@ export default function ProductDetail() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Product Not Found</h2>
+          <Link href="/shop" className="btn-primary">
+            Back to Shop
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isProductPubliclyAvailable(product) && isProductSold(product)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Product Sold Out</h2>
+          <p className="text-gray-600 mb-6">This product is no longer available in the shop.</p>
           <Link href="/shop" className="btn-primary">
             Back to Shop
           </Link>
@@ -290,12 +309,16 @@ export default function ProductDetail() {
                     </button>
                     <span className="px-6 py-2 font-semibold">{quantity}</span>
                     <button
-                      onClick={() => setQuantity(quantity + 1)}
-                      className="px-4 py-2 hover:bg-gray-100 transition-colors"
+                      onClick={() => setQuantity(Math.min(maxQuantity, quantity + 1))}
+                      disabled={quantity >= maxQuantity}
+                      className="px-4 py-2 hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       +
                     </button>
                   </div>
+                  {Number.isFinite(availableStock) && availableStock > 0 && (
+                    <p className="text-sm text-gray-500">Only {availableStock} left in stock</p>
+                  )}
                 </div>
               </div>
 
@@ -339,8 +362,8 @@ export default function ProductDetail() {
                 <div className="flex items-center gap-3 text-gray-600">
                   <FiRefreshCw size={24} className="text-gold-500" />
                   <div>
-                    <p className="font-semibold text-gray-800">Easy Returns</p>
-                    <p className="text-sm">30-day return policy</p>
+                    <p className="font-semibold text-gray-800">Hassle-Free Exchanges</p>
+                    <p className="text-sm">Designer-backed satisfaction guarantee</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 text-gray-600">

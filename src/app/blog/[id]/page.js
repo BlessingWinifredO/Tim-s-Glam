@@ -1,16 +1,123 @@
 'use client'
 
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { blogPosts } from '@/data/blog'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
+import { blogPosts as staticBlogPosts } from '@/data/blog'
 import { FiClock, FiUser, FiTag, FiArrowLeft, FiShare2 } from 'react-icons/fi'
+
+function renderPostContent(content) {
+  const lines = String(content || '')
+    .split('\n')
+    .map((line) => line.trim())
+
+  const elements = []
+  let bulletBuffer = []
+
+  const flushBullets = () => {
+    if (!bulletBuffer.length) return
+    elements.push(
+      <ul key={`ul-${elements.length}`} className="list-disc pl-6 mb-6 text-gray-700 space-y-2">
+        {bulletBuffer.map((item, index) => (
+          <li key={`${item}-${index}`}>{item}</li>
+        ))}
+      </ul>
+    )
+    bulletBuffer = []
+  }
+
+  lines.forEach((line) => {
+    if (!line) {
+      flushBullets()
+      return
+    }
+
+    if (line.startsWith('## ')) {
+      flushBullets()
+      elements.push(
+        <h2 key={`h2-${elements.length}`} className="text-2xl font-playfair font-bold text-gray-800 mt-8 mb-4">
+          {line.replace(/^##\s+/, '')}
+        </h2>
+      )
+      return
+    }
+
+    if (line.startsWith('- ')) {
+      bulletBuffer.push(line.replace(/^-\s+/, ''))
+      return
+    }
+
+    flushBullets()
+    elements.push(
+      <p key={`p-${elements.length}`} className="text-gray-700 leading-relaxed mb-6">
+        {line}
+      </p>
+    )
+  })
+
+  flushBullets()
+  return elements
+}
 
 export default function BlogPost() {
   const params = useParams()
   const router = useRouter()
-  
-  const post = blogPosts.find(p => p.id === parseInt(params.id))
+  const [post, setPost] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  const relatedPosts = useMemo(() => {
+    if (!post) return []
+    return staticBlogPosts
+      .filter((p) => p.id !== post.id && p.category === post.category)
+      .slice(0, 3)
+  }, [post])
+
+  useEffect(() => {
+    const fetchPost = async () => {
+      try {
+        setLoading(true)
+        const id = String(params.id || '')
+        const snapshot = await getDoc(doc(db, 'blogPosts', id))
+
+        if (snapshot.exists()) {
+          const data = snapshot.data()
+          if (data.status === 'published') {
+            setPost({
+              id: snapshot.id,
+              ...data,
+              date:
+                data.publishedAt?.toDate?.()?.toLocaleDateString() ||
+                data.updatedAt?.toDate?.()?.toLocaleDateString() ||
+                data.createdAt?.toDate?.()?.toLocaleDateString() ||
+                'N/A',
+            })
+            return
+          }
+        }
+
+        const fallbackPost = staticBlogPosts.find((p) => p.id === parseInt(id, 10)) || null
+        setPost(fallbackPost)
+      } catch {
+        const fallbackPost = staticBlogPosts.find((p) => p.id === parseInt(params.id, 10)) || null
+        setPost(fallbackPost)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchPost()
+  }, [params.id])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600">Loading article...</p>
+      </div>
+    )
+  }
 
   if (!post) {
     return (
@@ -24,10 +131,6 @@ export default function BlogPost() {
       </div>
     )
   }
-
-  const relatedPosts = blogPosts
-    .filter(p => p.id !== post.id && p.category === post.category)
-    .slice(0, 3)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -97,38 +200,8 @@ export default function BlogPost() {
               <p className="text-xl text-gray-700 leading-relaxed mb-6">
                 {post.excerpt}
               </p>
-              
-              <p className="text-gray-700 leading-relaxed mb-6">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt 
-                ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco 
-                laboris nisi ut aliquip ex ea commodo consequat.
-              </p>
 
-              <h2 className="text-2xl font-playfair font-bold text-gray-800 mt-8 mb-4">Key Takeaways</h2>
-              <p className="text-gray-700 leading-relaxed mb-6">
-                Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat 
-                nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia 
-                deserunt mollit anim id est laborum.
-              </p>
-
-              <ul className="list-disc pl-6 mb-6 text-gray-700 space-y-2">
-                <li>Understanding current fashion trends and how to incorporate them</li>
-                <li>Building a versatile wardrobe that works for any occasion</li>
-                <li>Choosing sustainable and ethical fashion options</li>
-                <li>Expressing your personal style with confidence</li>
-              </ul>
-
-              <h2 className="text-2xl font-playfair font-bold text-gray-800 mt-8 mb-4">Final Thoughts</h2>
-              <p className="text-gray-700 leading-relaxed mb-6">
-                Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque 
-                laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi 
-                architecto beatae vitae dicta sunt explicabo.
-              </p>
-
-              <p className="text-gray-700 leading-relaxed">
-                Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia 
-                consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.
-              </p>
+              {renderPostContent(post.content)}
             </div>
           </div>
 

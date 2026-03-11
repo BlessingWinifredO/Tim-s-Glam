@@ -105,7 +105,7 @@ export default function Contact() {
     },
     {
       question: 'What is your return policy?',
-      answer: 'We offer 30-day returns on all unworn items with original tags. See our Returns page for details.'
+      answer: 'We offer hassle-free exchanges on all unworn items with original tags, backed by our designer satisfaction guarantee. See our Returns page for details.'
     },
     {
       question: 'Do you ship internationally?',
@@ -408,7 +408,9 @@ export default function Contact() {
                     <span className="text-xs font-semibold">Facebook</span>
                   </a>
                   <a
-                    href="#"
+                    href="https://www.instagram.com/tims.glam?igsh=MWwxNXhhMGwyYWo0eg%3D%3D&utm_source=qr"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="flex flex-col items-center justify-center gap-2 py-4 bg-white/10 backdrop-blur-sm hover:bg-white/20 rounded-xl transition-all border border-white/20"
                   >
                     <FiInstagram size={24} />

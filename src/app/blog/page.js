@@ -1,14 +1,62 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { blogPosts, categories } from '@/data/blog'
+import { collection, getDocs, query, where } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
+import { blogPosts as staticBlogPosts, categories as staticCategories } from '@/data/blog'
 import { FiClock, FiUser, FiTag, FiSearch, FiTrendingUp, FiBookOpen, FiArrowRight } from 'react-icons/fi'
 
 export default function Blog() {
+  const [blogPosts, setBlogPosts] = useState([])
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [searchTerm, setSearchTerm] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        setLoading(true)
+        const snapshot = await getDocs(query(collection(db, 'blogPosts'), where('status', '==', 'published')))
+        const firestorePosts = snapshot.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() }))
+          .map((post) => ({
+            ...post,
+            date:
+              post.publishedAt?.toDate?.()?.toLocaleDateString() ||
+              post.updatedAt?.toDate?.()?.toLocaleDateString() ||
+              post.createdAt?.toDate?.()?.toLocaleDateString() ||
+              'N/A',
+          }))
+          .sort((a, b) => {
+            const aTime = a.publishedAt?.toDate?.()?.getTime() || a.updatedAt?.toDate?.()?.getTime() || 0
+            const bTime = b.publishedAt?.toDate?.()?.getTime() || b.updatedAt?.toDate?.()?.getTime() || 0
+            return bTime - aTime
+          })
+
+        if (firestorePosts.length > 0) {
+          setBlogPosts(firestorePosts)
+        } else {
+          setBlogPosts(staticBlogPosts)
+        }
+        setLoadError('')
+      } catch {
+        setBlogPosts(staticBlogPosts)
+        setLoadError('Could not load latest blog posts from server. Showing fallback content.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchPosts()
+  }, [])
+
+  const categories = useMemo(() => {
+    const fromPosts = Array.from(new Set(blogPosts.map((post) => post.category).filter(Boolean)))
+    return fromPosts.length ? ['All', ...fromPosts] : staticCategories
+  }, [blogPosts])
 
   const filteredPosts = blogPosts.filter(post => {
     const matchesCategory = selectedCategory === 'All' || post.category === selectedCategory
@@ -17,8 +65,23 @@ export default function Blog() {
     return matchesCategory && matchesSearch
   })
 
-  const featuredPost = blogPosts[0]
-  const recentPosts = blogPosts.slice(1, 4)
+  const featuredPost = blogPosts.find((post) => post.featured) || blogPosts[0]
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <p className="text-gray-600">Loading blog content...</p>
+      </div>
+    )
+  }
+
+  if (!featuredPost) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <p className="text-gray-600">No blog posts available yet.</p>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -131,6 +194,12 @@ export default function Blog() {
       {/* Blog Posts Grid */}
       <section className="section-padding bg-gradient-to-b from-gray-50 to-white">
         <div className="container-custom">
+          {loadError && (
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm">
+              {loadError}
+            </div>
+          )}
+
           {/* Search and Filter */}
           <div className="mb-12 bg-white rounded-2xl p-6 md:p-8 shadow-lg">
             {/* Search Bar */}

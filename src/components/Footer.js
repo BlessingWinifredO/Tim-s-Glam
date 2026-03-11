@@ -30,7 +30,7 @@ export default function Footer() {
               <a href="#" aria-label="Facebook" className="w-9 h-9 rounded-full border border-white/20 hover:border-gold-400 hover:text-gold-300 transition-all flex items-center justify-center">
                 <FiFacebook size={20} />
               </a>
-              <a href="#" aria-label="Instagram" className="w-9 h-9 rounded-full border border-white/20 hover:border-gold-400 hover:text-gold-300 transition-all flex items-center justify-center">
+              <a href="https://www.instagram.com/tims.glam?igsh=MWwxNXhhMGwyYWo0eg%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="w-9 h-9 rounded-full border border-white/20 hover:border-gold-400 hover:text-gold-300 transition-all flex items-center justify-center">
                 <FiInstagram size={20} />
               </a>
               <a href="#" aria-label="Twitter" className="w-9 h-9 rounded-full border border-white/20 hover:border-gold-400 hover:text-gold-300 transition-all flex items-center justify-center">

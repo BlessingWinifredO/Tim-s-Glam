@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import {
   createUserWithEmailAndPassword,
   fetchSignInMethodsForEmail,
@@ -16,10 +16,13 @@ import { collection, doc, serverTimestamp, setDoc, getDoc, updateDoc, query, whe
 import { auth, db, googleProvider } from '@/lib/firebase'
 
 const AuthContext = createContext()
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const inactivityTimerRef = useRef(null)
+  const pendingVerificationSignupRef = useRef(false)
 
   const isAdminEmail = useCallback((email) => {
     const normalizedEmail = String(email || '').trim().toLowerCase()
@@ -33,8 +36,11 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      // Keep admin auth isolated from storefront customer auth UI.
-      if (currentUser?.email && isAdminEmail(currentUser.email)) {
+      // During sign-up verification transition, keep storefront user null to avoid UI flash.
+      if (pendingVerificationSignupRef.current) {
+        setUser(null)
+      } else if (currentUser?.email && isAdminEmail(currentUser.email)) {
+        // Keep admin auth isolated from storefront customer auth UI.
         setUser(null)
       } else {
         setUser(currentUser)
@@ -63,9 +69,26 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
+  const sendNotificationEmail = useCallback(async (payload) => {
+    try {
+      const response = await fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      return response.ok
+    } catch {
+      // Notifications should not block auth flows.
+      return false
+    }
+  }, [])
+
   const persistGoogleProfile = useCallback(
     async (googleUser) => {
       if (!googleUser?.uid) return
+
+      const existingUserDoc = await getDoc(doc(db, 'users', googleUser.uid))
+      const isNewUser = !existingUserDoc.exists()
 
       await persistUserProfile(googleUser.uid, {
         uid: googleUser.uid,
@@ -76,9 +99,25 @@ export function AuthProvider({ children }) {
         createdAt: serverTimestamp(),
         lastLoginAt: serverTimestamp(),
         emailVerified: true,
+        welcomeEmailSent: false,
       })
+
+      if (isNewUser && googleUser.email) {
+        const welcomeSent = await sendNotificationEmail({
+          action: 'welcome',
+          email: googleUser.email,
+          fullName: googleUser.displayName || 'there',
+        })
+
+        if (welcomeSent) {
+          await persistUserProfile(googleUser.uid, {
+            uid: googleUser.uid,
+            welcomeEmailSent: true,
+          })
+        }
+      }
     },
-    [persistUserProfile]
+    [persistUserProfile, sendNotificationEmail]
   )
 
   useEffect(() => {
@@ -176,37 +215,68 @@ export function AuthProvider({ children }) {
   const signUpWithEmail = useCallback(async ({ fullName, email, password }) => {
     clearAdminSession()
     const normalizedEmail = email.toLowerCase()
-    const credential = await createUserWithEmailAndPassword(auth, normalizedEmail, password)
+    pendingVerificationSignupRef.current = true
 
-    if (fullName?.trim()) {
-      await updateProfile(credential.user, { displayName: fullName.trim() })
+    try {
+      const credential = await createUserWithEmailAndPassword(auth, normalizedEmail, password)
+
+      if (fullName?.trim()) {
+        await updateProfile(credential.user, { displayName: fullName.trim() })
+      }
+
+      await persistUserProfile(credential.user.uid, {
+        uid: credential.user.uid,
+        fullName: fullName?.trim() || credential.user.displayName || '',
+        email: normalizedEmail,
+        photoURL: credential.user.photoURL || '',
+        provider: 'password',
+        createdAt: serverTimestamp(),
+        lastLoginAt: serverTimestamp(),
+        emailVerified: false,
+        welcomeEmailSent: false,
+      })
+
+      // Generate and store verification code
+      const code = generateCode()
+      await storeVerificationCode(normalizedEmail, code, credential.user.uid)
+      const emailSent = await sendCodeEmail({
+        email: normalizedEmail,
+        code,
+        type: 'verification',
+      })
+
+      if (!emailSent) {
+        throw new Error('We could not send the verification code email. Please check your email address and try again.')
+      }
+
+      const welcomeSent = await sendNotificationEmail({
+        action: 'welcome',
+        email: normalizedEmail,
+        fullName: fullName?.trim() || 'there',
+      })
+
+      if (welcomeSent) {
+        await persistUserProfile(credential.user.uid, {
+          uid: credential.user.uid,
+          welcomeEmailSent: true,
+        })
+      }
+
+      // Sign out after registration (user must verify email first)
+      await signOut(auth)
+
+      return { credential, emailSent }
+    } catch (error) {
+      try {
+        await signOut(auth)
+      } catch {
+        // Ignore cleanup sign-out failures.
+      }
+      throw error
+    } finally {
+      pendingVerificationSignupRef.current = false
     }
-
-    await persistUserProfile(credential.user.uid, {
-      uid: credential.user.uid,
-      fullName: fullName?.trim() || credential.user.displayName || '',
-      email: normalizedEmail,
-      photoURL: credential.user.photoURL || '',
-      provider: 'password',
-      createdAt: serverTimestamp(),
-      lastLoginAt: serverTimestamp(),
-      emailVerified: false,
-    })
-
-    // Generate and store verification code
-    const code = generateCode()
-    await storeVerificationCode(normalizedEmail, code, credential.user.uid)
-    const emailSent = await sendCodeEmail({
-      email: normalizedEmail,
-      code,
-      type: 'verification',
-    })
-
-    // Sign out after registration (user must verify email first)
-    await signOut(auth)
-
-    return { credential, code, emailSent }
-  }, [clearAdminSession, persistUserProfile, sendCodeEmail, storeVerificationCode])
+  }, [clearAdminSession, persistUserProfile, sendCodeEmail, sendNotificationEmail, storeVerificationCode])
 
   const createOrResendVerificationCode = useCallback(async (email) => {
     const normalizedEmail = email.toLowerCase()
@@ -369,8 +439,12 @@ export function AuthProvider({ children }) {
     await updateDoc(doc(db, 'verificationCodes', email.toLowerCase()), { used: true })
 
     // Mark user as verified in Firestore
+    let userData = null
     try {
-      await updateDoc(doc(db, 'users', codeData.uid), { emailVerified: true })
+      const userRef = doc(db, 'users', codeData.uid)
+      await updateDoc(userRef, { emailVerified: true })
+      const userSnap = await getDoc(userRef)
+      userData = userSnap.exists() ? userSnap.data() : null
     } catch (error) {
       if (error?.code === 'permission-denied') {
         throw new Error('Verification failed due to Firestore rules. Publish the latest firestore.rules and try again.')
@@ -378,8 +452,20 @@ export function AuthProvider({ children }) {
       throw error
     }
 
+    if (userData?.email && !userData?.welcomeEmailSent) {
+      const welcomeSent = await sendNotificationEmail({
+        action: 'welcome',
+        email: userData.email,
+        fullName: userData.fullName || 'there',
+      })
+
+      if (welcomeSent) {
+        await updateDoc(doc(db, 'users', codeData.uid), { welcomeEmailSent: true })
+      }
+    }
+
     return { success: true }
-  }, [])
+  }, [sendNotificationEmail])
 
   // Resend verification code
   const resendVerificationCode = useCallback(async (email) => {
@@ -482,6 +568,46 @@ export function AuthProvider({ children }) {
   }, [sendCodeEmail, storeResetCode])
 
   const logout = useCallback(() => signOut(auth), [])
+
+  const resetInactivityTimer = useCallback(() => {
+    if (!user || typeof window === 'undefined') return
+
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current)
+    }
+
+    inactivityTimerRef.current = setTimeout(async () => {
+      try {
+        await logout()
+      } catch {
+        // Ignore sign-out errors on idle timeout.
+      }
+    }, IDLE_TIMEOUT_MS)
+  }, [logout, user])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !user) return
+
+    const activityEvents = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart']
+    const handleActivity = () => resetInactivityTimer()
+
+    activityEvents.forEach((eventName) => {
+      window.addEventListener(eventName, handleActivity)
+    })
+
+    resetInactivityTimer()
+
+    return () => {
+      activityEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, handleActivity)
+      })
+
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current)
+        inactivityTimerRef.current = null
+      }
+    }
+  }, [resetInactivityTimer, user])
 
   const value = useMemo(
     () => ({

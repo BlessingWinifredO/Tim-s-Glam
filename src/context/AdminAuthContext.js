@@ -1,15 +1,20 @@
 'use client'
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { signInWithEmailAndPassword, signOut } from 'firebase/auth'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { usePathname } from 'next/navigation'
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 
 const AdminAuthContext = createContext()
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000
 
 export function AdminAuthProvider({ children }) {
+  const pathname = usePathname()
+  const isAdminRoute = pathname?.startsWith('/admin') || false
   const [adminUser, setAdminUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const inactivityTimerRef = useRef(null)
 
   const getAllowedAdminEmails = useCallback(() => {
     const allowedAdminsRaw = process.env.NEXT_PUBLIC_ADMIN_EMAIL || ''
@@ -27,21 +32,36 @@ export function AdminAuthProvider({ children }) {
   }), [])
 
   useEffect(() => {
-    // Clear Firebase auth session on mount (require fresh admin login each time)
-    const clearAndListen = async () => {
-      try {
-        await signOut(auth)
-      } catch (err) {
-        console.error('Error clearing auth on mount:', err)
-      }
-
-      setAdminUser(null)
-      localStorage.removeItem('adminUser')
+    if (!isAdminRoute) {
       setLoading(false)
+      return
     }
 
-    clearAndListen()
-  }, [])
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      const normalizedEmail = String(currentUser?.email || '').trim().toLowerCase()
+      const allowedAdminEmails = getAllowedAdminEmails()
+
+      if (currentUser && allowedAdminEmails.includes(normalizedEmail)) {
+        let previous = null
+        try {
+          previous = JSON.parse(localStorage.getItem('adminUser') || 'null')
+        } catch {
+          previous = null
+        }
+
+        const adminData = buildAdminData(normalizedEmail, previous)
+        setAdminUser(adminData)
+        localStorage.setItem('adminUser', JSON.stringify(adminData))
+      } else {
+        setAdminUser(null)
+        localStorage.removeItem('adminUser')
+      }
+
+      setLoading(false)
+    })
+
+    return () => unsubscribe()
+  }, [buildAdminData, getAllowedAdminEmails, isAdminRoute])
 
   const adminSignIn = useCallback(async (email, password) => {
     setLoading(true)
@@ -94,6 +114,46 @@ export function AdminAuthProvider({ children }) {
       console.error('Error signing out from Firebase Auth:', err)
     }
   }, [])
+
+  const resetInactivityTimer = useCallback(() => {
+    if (!adminUser || typeof window === 'undefined') return
+
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current)
+    }
+
+    inactivityTimerRef.current = setTimeout(async () => {
+      try {
+        await adminLogout()
+      } catch {
+        // Ignore sign-out errors on idle timeout.
+      }
+    }, IDLE_TIMEOUT_MS)
+  }, [adminLogout, adminUser])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !adminUser) return
+
+    const activityEvents = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart']
+    const handleActivity = () => resetInactivityTimer()
+
+    activityEvents.forEach((eventName) => {
+      window.addEventListener(eventName, handleActivity)
+    })
+
+    resetInactivityTimer()
+
+    return () => {
+      activityEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, handleActivity)
+      })
+
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current)
+        inactivityTimerRef.current = null
+      }
+    }
+  }, [adminUser, resetInactivityTimer])
 
   const checkAdminSession = useCallback(async () => {
     // Session restoration is handled by onAuthStateChanged subscription.

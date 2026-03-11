@@ -199,9 +199,6 @@ export default function AccountPage() {
         })
 
         const params = new URLSearchParams({ email: formData.email.toLowerCase() })
-        if (result?.code && process.env.NODE_ENV !== 'production') {
-          params.set('devCode', result.code)
-        }
         params.set('mailSent', result?.emailSent ? '1' : '0')
 
         router.push(`/verify-email?${params.toString()}`)
@@ -228,9 +225,6 @@ export default function AccountPage() {
           })
 
           const params = new URLSearchParams({ email: formData.email.toLowerCase() })
-          if (result?.code && process.env.NODE_ENV !== 'production') {
-            params.set('devCode', result.code)
-          }
           params.set('mailSent', result?.emailSent ? '1' : '0')
 
           router.push(`/verify-email?${params.toString()}`)

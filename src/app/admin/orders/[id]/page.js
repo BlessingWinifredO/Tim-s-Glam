@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { applyInventoryAdjustmentForCompletedOrder } from '@/lib/orderInventory'
 import { 
   FiArrowLeft, 
   FiLoader,
@@ -67,9 +68,31 @@ export default function OrderDetailPage() {
   const handleStatusChange = async (newStatus) => {
     setUpdating(true)
     try {
-      const orderRef = doc(db, 'orders', orderId)
-      await updateDoc(orderRef, { status: newStatus })
-      setOrder({ ...order, status: newStatus })
+      if (newStatus === 'Completed') {
+        const result = await applyInventoryAdjustmentForCompletedOrder(db, orderId, order, newStatus)
+        setOrder({ ...order, status: newStatus, inventoryAdjusted: result.inventoryAdjusted })
+      } else {
+        const orderRef = doc(db, 'orders', orderId)
+        await updateDoc(orderRef, { status: newStatus })
+        setOrder({ ...order, status: newStatus })
+      }
+
+      try {
+        await fetch('/api/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'orderStatusUpdated',
+            email: order.customerEmail,
+            customerName: order.customerName,
+            orderId,
+            status: newStatus,
+          }),
+        })
+      } catch {
+        // Do not block admin updates on email failures.
+      }
+
       setError('')
     } catch (err) {
       setError(`Failed to update order status: ${err.message}`)
@@ -205,10 +228,9 @@ export default function OrderDetailPage() {
             Shipping Address
           </h3>
           <div className="space-y-1">
-            <p className="font-medium text-gray-900">{order.shippingAddress?.fullName}</p>
-            <p className="text-gray-600 text-sm">{order.shippingAddress?.street}</p>
-            <p className="text-gray-600 text-sm">{order.shippingAddress?.city}, {order.shippingAddress?.state} {order.shippingAddress?.zipCode}</p>
-            <p className="text-gray-600 text-sm">{order.shippingAddress?.country}</p>
+            <p className="font-medium text-gray-900">{order.customerName}</p>
+            <p className="text-gray-600 text-sm">{order.customerAddress || 'Not provided'}</p>
+            <p className="text-gray-600 text-sm">{order.customerCity}{order.customerPostalCode ? `, ${order.customerPostalCode}` : ''}</p>
           </div>
         </div>
 
@@ -222,7 +244,7 @@ export default function OrderDetailPage() {
             </div>
             <div className="flex justify-between items-center pb-3 border-b border-gray-200">
               <span className="text-gray-600">Shipping</span>
-              <span className="font-medium text-gray-900">${(parseFloat(order.shippingCost || 0)).toFixed(2)}</span>
+              <span className="font-medium text-gray-900">${(parseFloat(order.shipping || order.shippingCost || 0)).toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-center pb-3 border-b border-gray-200">
               <span className="text-gray-600">Tax</span>
@@ -259,11 +281,11 @@ export default function OrderDetailPage() {
                 {order.items.map((item, idx) => (
                   <tr key={idx} className="hover:bg-gray-50">
                     <td className="px-4 py-4">
-                      <p className="font-medium text-gray-900">{item.productName}</p>
+                      <p className="font-medium text-gray-900">{item.name || item.productName}</p>
                       <p className="text-sm text-gray-600">{item.productId?.slice(0, 8)}</p>
                     </td>
                     <td className="px-4 py-4 text-center">
-                      <p className="font-medium text-gray-700">{item.size || 'N/A'}</p>
+                      <p className="font-medium text-gray-700">{item.selectedSize || item.size || 'N/A'}</p>
                     </td>
                     <td className="px-4 py-4 text-center">
                       <p className="font-medium text-gray-700">{item.quantity}</p>

@@ -10,7 +10,6 @@ function VerifyEmailContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const email = searchParams.get('email')
-  const devCode = searchParams.get('devCode')
   const mailSent = searchParams.get('mailSent')
   const { verifyEmailCode, resendVerificationCode, loading } = useAuth()
   
@@ -66,14 +65,9 @@ function VerifyEmailContent() {
     try {
       const result = await resendVerificationCode(email)
       if (!result?.emailSent) {
-        if (result?.code && process.env.NODE_ENV !== 'production') {
-          setMessage(`Email sending is not configured yet. Use this dev code: ${result.code}`)
-        } else {
-          setMessage('Code created, but email delivery is not configured yet.')
-        }
-      } else {
-        setMessage('Verification code has been resent to your email')
+        throw new Error('We could not send the verification code email right now. Please try again in a moment.')
       }
+      setMessage('Verification code has been resent to your email')
     } catch (err) {
       setError(err.message || 'Failed to resend verification code')
     } finally {
@@ -115,11 +109,8 @@ function VerifyEmailContent() {
           {mailSent === '0' && (
             <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
               <p className="text-sm text-amber-800">
-                Email delivery is not configured yet on this project. A verification code was created but not emailed.
+                We could not confirm email delivery. Please click "Resend verification code".
               </p>
-              {devCode && process.env.NODE_ENV !== 'production' && (
-                <p className="text-sm font-semibold text-amber-900 mt-2">Dev code: {devCode}</p>
-              )}
             </div>
           )}
 

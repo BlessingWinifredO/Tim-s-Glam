@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import ProductCard from '@/components/ProductCard'
+import { isProductPubliclyAvailable } from '@/lib/productAvailability'
 import { FiFilter, FiX, FiChevronDown, FiLoader } from 'react-icons/fi'
 import Link from 'next/link'
 
@@ -61,7 +62,7 @@ export default function CategoryShop({ category }) {
           id: doc.id,
           ...doc.data()
         }))
-        setProducts(productsData.filter(p => p.status === 'Active'))
+        setProducts(productsData.filter(isProductPubliclyAvailable))
       } catch (err) {
         console.error('Error fetching products:', err)
         setProducts([])

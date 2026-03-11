@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { FiMenu, FiX, FiShoppingCart, FiSearch, FiUser, FiHeart, FiLogOut } from 'react-icons/fi'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { isProductPubliclyAvailable } from '@/lib/productAvailability'
 import { useCart } from '@/context/CartContext'
 import { useWishlist } from '@/context/WishlistContext'
 import { useAuth } from '@/context/AuthContext'
@@ -32,7 +33,7 @@ export default function Header() {
           id: doc.id,
           ...doc.data()
         }))
-        setProducts(productsData.filter(p => p.status === 'Active'))
+        setProducts(productsData.filter(isProductPubliclyAvailable))
       } catch (err) {
         console.error('Error fetching products:', err)
         setProducts([])
@@ -130,7 +131,7 @@ export default function Header() {
         {/* Top Bar */}
         <div className="bg-primary-600 text-white">
           <div className="container-custom py-2 text-xs sm:text-sm flex items-center justify-center">
-            <p className="tracking-wide">Free Shipping on Orders Over $100 | Use Code: GLAM2026</p>
+            <p className="tracking-wide">Free Shipping Over ₦100,000 - Use Code GLAM2026</p>
           </div>
         </div>
 

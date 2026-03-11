@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect } from 'react'
+import { getAvailableStock } from '@/lib/productAvailability'
 
 const CartContext = createContext()
 
@@ -23,6 +24,11 @@ export function CartProvider({ children }) {
 
   const addToCart = (product, selectedSize, selectedColor, quantity = 1) => {
     setCart(prevCart => {
+      const availableStock = getAvailableStock(product)
+      if (availableStock <= 0) {
+        return prevCart
+      }
+
       const existingItem = prevCart.find(
         item => item.id === product.id && 
                 item.selectedSize === selectedSize && 
@@ -34,7 +40,7 @@ export function CartProvider({ children }) {
           item.id === product.id && 
           item.selectedSize === selectedSize && 
           item.selectedColor === selectedColor
-            ? { ...item, quantity: item.quantity + quantity }
+            ? { ...item, quantity: Math.min(item.quantity + quantity, availableStock) }
             : item
         )
       }
@@ -43,7 +49,7 @@ export function CartProvider({ children }) {
         ...product, 
         selectedSize, 
         selectedColor, 
-        quantity 
+        quantity: Math.min(quantity, availableStock)
       }]
     })
     setIsOpen(true)
@@ -70,7 +76,7 @@ export function CartProvider({ children }) {
         item.id === productId && 
         item.selectedSize === selectedSize && 
         item.selectedColor === selectedColor
-          ? { ...item, quantity }
+          ? { ...item, quantity: Math.min(quantity, getAvailableStock(item)) }
           : item
       )
     )

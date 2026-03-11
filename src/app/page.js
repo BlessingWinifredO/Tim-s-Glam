@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { FiTruck, FiShield, FiRefreshCw, FiAward, FiArrowRight } from 'react-icons/fi'
+import { FiTruck, FiShield, FiRefreshCw, FiAward, FiArrowRight, FiCheckCircle, FiUsers, FiBriefcase, FiMail } from 'react-icons/fi'
 import { collection, getDocs, query, where, limit } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { isProductPubliclyAvailable } from '@/lib/productAvailability'
 import { blogPosts } from '@/data/blog'
 import ProductCard from '@/components/ProductCard'
 import ImageSlider from '@/components/ImageSlider'
@@ -15,6 +16,10 @@ import TestimonialsSlider from '@/components/TestimonialsSlider'
 export default function Home() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
+  const [newsletterEmail, setNewsletterEmail] = useState('')
+  const [newsletterSubmitting, setNewsletterSubmitting] = useState(false)
+  const [newsletterMessage, setNewsletterMessage] = useState('')
+  const [newsletterError, setNewsletterError] = useState('')
   
   // Fetch products from Firestore
   useEffect(() => {
@@ -25,8 +30,7 @@ export default function Home() {
           id: doc.id,
           ...doc.data()
         }))
-        // Only show active products
-        setProducts(productsData.filter(p => p.status === 'Active'))
+        setProducts(productsData.filter(isProductPubliclyAvailable))
       } catch (err) {
         console.error('Error fetching products:', err)
         setProducts([])
@@ -40,32 +44,218 @@ export default function Home() {
   
   const featuredProducts = products.filter(p => p.featured).slice(0, 12)
   const latestBlogs = blogPosts.slice(0, 3)
+  const featuredDesigners = [
+    { name: 'Aurelia House', mark: 'AH' },
+    { name: 'Street Loom', mark: 'SL' },
+    { name: 'Ivory Thread', mark: 'IT' },
+    { name: 'Urban Silhouette', mark: 'US' },
+    { name: 'Noble Wardrobe', mark: 'NW' },
+    { name: 'Kulture Lab', mark: 'KL' },
+  ]
+
+  const trendingCategories = [
+    { name: 'Women', href: '/shop/women' },
+    { name: 'Men', href: '/shop/men' },
+    { name: 'Kids', href: '/shop?category=kids' },
+    { name: 'Accessories', href: '/shop' },
+    { name: 'Streetwear', href: '/shop' },
+    { name: 'Luxury', href: '/shop' },
+  ]
+
+  const handleNewsletterSubmit = async (e) => {
+    e.preventDefault()
+    const email = newsletterEmail.trim()
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setNewsletterError('Please enter a valid email address.')
+      setNewsletterMessage('')
+      return
+    }
+
+    try {
+      setNewsletterSubmitting(true)
+      setNewsletterError('')
+      setNewsletterMessage('')
+
+      const response = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result?.error || 'Subscription failed. Please try again.')
+      }
+
+      setNewsletterMessage(result?.message || 'Thanks for subscribing!')
+      setNewsletterEmail('')
+    } catch (error) {
+      setNewsletterError(error?.message || 'Subscription failed. Please try again.')
+    } finally {
+      setNewsletterSubmitting(false)
+    }
+  }
 
   return (
     <div>
       {/* Hero Section with Image Slider */}
-      <section className="relative">
+      <section className="relative overflow-hidden">
         <ImageSlider />
+        <div className="absolute inset-0 bg-gradient-to-b from-primary-900/10 via-transparent to-primary-900/35"></div>
         
         {/* Hero Content Overlay */}
-        <div className="absolute inset-0 flex flex-col items-center justify-start pt-16 md:pt-24 lg:pt-32 px-4 md:px-8">
-          <div className="container-custom relative z-10 text-center text-white w-full">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-playfair font-bold mb-4 md:mb-6 animate-fade-in leading-tight">
+        <div className="absolute inset-0 flex flex-col items-center justify-start pt-12 md:pt-20 lg:pt-28 px-4 md:px-8">
+          <div className="container-custom relative z-10 text-center text-white w-full max-w-5xl">
+            <div className="mx-auto max-w-4xl rounded-2xl border border-white/20 bg-black/25 backdrop-blur-md px-5 py-7 md:px-10 md:py-12 shadow-2xl">
+            <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-playfair font-bold mb-4 md:mb-6 animate-fade-in leading-tight">
               Your Style. Your Signature.
               <br />
               <span className="text-gold-400">Your Glam.</span>
             </h1>
-            <p className="text-lg sm:text-xl md:text-2xl mb-12 md:mb-16 max-w-2xl mx-auto leading-relaxed">
-              Discover unique, creative styles from independent fashion entrepreneurs across the globe.
+            <p className="text-base sm:text-xl md:text-2xl mb-8 md:mb-12 max-w-2xl mx-auto leading-relaxed">
+              Discover premium fashion for adults and kids.
+              <br />
+              Shop unique styles that elevate your wardrobe.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center w-full sm:w-auto">
-              <Link href="/shop" className="btn-primary">
+              <Link href="/shop" className="btn-primary shadow-xl hover:shadow-2xl transition-shadow">
                 Shop Now
               </Link>
-              <Link href="/about" className="btn-outline bg-white bg-opacity-10 backdrop-blur-sm border-white text-white hover:bg-white hover:text-primary-500">
-                Learn More
+              <Link href="/shop" className="btn-outline bg-white/15 backdrop-blur-sm border-white/80 text-white hover:bg-white hover:text-primary-700">
+                Explore Collections
               </Link>
             </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Designers */}
+      <section className="section-padding py-14 md:py-20 bg-gradient-to-b from-white via-gray-50 to-white border-b border-gray-100">
+        <div className="container-custom">
+          <div className="text-center mb-10">
+            <p className="text-gold-500 font-semibold mb-2 tracking-widest uppercase text-sm">Marketplace Partners</p>
+            <h2 className="heading-md mb-3">Featured Designers</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">Discover standout brands shaping modern style on TIM&apos;S GLAM.</p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+            {featuredDesigners.map((designer) => (
+              <div key={designer.name} className="bg-white border border-gray-200 rounded-xl p-3 md:p-4 text-center hover:shadow-lg hover:-translate-y-1 transition-all">
+                <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-gradient-to-br from-primary-600 to-primary-800 text-white flex items-center justify-center font-bold ring-2 ring-primary-100">
+                  {designer.mark}
+                </div>
+                <p className="text-xs md:text-sm font-semibold text-gray-900 mb-2">{designer.name}</p>
+                <Link href="/shop" className="text-xs font-semibold text-primary-600 hover:text-gold-500">View Collection</Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Trending Categories */}
+      <section className="section-padding py-14 md:py-20 bg-gradient-to-r from-gray-50 via-white to-gray-50">
+        <div className="container-custom">
+          <div className="text-center mb-10">
+            <p className="text-gold-500 font-semibold mb-2 tracking-widest uppercase text-sm">Quick Browse</p>
+            <h2 className="heading-md mb-3">Shop by Category</h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {trendingCategories.map((category) => (
+              <Link
+                key={category.name}
+                href={category.href}
+                className="bg-white border border-gray-200 rounded-xl py-4 md:py-5 px-3 md:px-4 text-center text-sm md:text-base font-semibold text-gray-800 hover:border-primary-500 hover:text-primary-600 hover:shadow-lg hover:-translate-y-1 transition-all"
+              >
+                {category.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Trust Section */}
+      <section className="section-padding py-14 md:py-20 bg-gradient-to-r from-primary-700 to-primary-900 text-white relative overflow-hidden">
+        <Image
+          src="/home/home-11.jpg"
+          alt="Fashion trust background"
+          fill
+          className="object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-primary-900/90 via-primary-800/85 to-primary-700/90"></div>
+        <div className="container-custom relative z-10">
+          <div className="text-center mb-10">
+            <h2 className="heading-md text-white mb-3">Why Shop TIM&apos;S GLAM</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+            <div className="bg-white/10 rounded-xl p-4 md:p-5 border border-white/20 backdrop-blur-sm">
+              <FiShield className="mb-3 text-gold-300" size={22} />
+              <p className="font-semibold">Secure Payments</p>
+            </div>
+            <div className="bg-white/10 rounded-xl p-4 md:p-5 border border-white/20 backdrop-blur-sm">
+              <FiUsers className="mb-3 text-gold-300" size={22} />
+              <p className="font-semibold">Independent Designers</p>
+            </div>
+            <div className="bg-white/10 rounded-xl p-4 md:p-5 border border-white/20 backdrop-blur-sm">
+              <FiCheckCircle className="mb-3 text-gold-300" size={22} />
+              <p className="font-semibold">Premium Quality Fashion</p>
+            </div>
+            <div className="bg-white/10 rounded-xl p-4 md:p-5 border border-white/20 backdrop-blur-sm">
+              <FiTruck className="mb-3 text-gold-300" size={22} />
+              <p className="font-semibold">Global Shipping</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Join As Seller */}
+      <section className="section-padding py-14 md:py-20 bg-white relative overflow-hidden">
+        <Image
+          src="/home/home-10.jpg"
+          alt="Fashion seller background"
+          fill
+          className="object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/80 to-white/90"></div>
+        <div className="container-custom relative z-10">
+          <div className="max-w-4xl mx-auto bg-gradient-to-r from-gold-50/95 via-white/95 to-primary-50/95 border border-gold-200 rounded-2xl p-7 md:p-12 text-center shadow-lg backdrop-blur-sm">
+            <FiBriefcase className="mx-auto text-primary-600 mb-4" size={28} />
+            <h2 className="text-2xl md:text-4xl font-playfair font-bold text-gray-900 mb-4">Own a Fashion Brand?</h2>
+            <p className="text-gray-700 text-base md:text-lg mb-6">Join TIM&apos;S GLAM and reach customers worldwide.</p>
+            <Link href="/contact" className="btn-primary inline-flex items-center gap-2">
+              <span>Start Selling</span>
+              <FiArrowRight size={18} />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Newsletter */}
+      <section className="section-padding py-14 md:py-20 bg-gradient-to-b from-gray-50 to-white">
+        <div className="container-custom">
+          <div className="max-w-3xl mx-auto text-center bg-white border border-gray-200 rounded-2xl p-7 md:p-10 shadow-sm">
+            <FiMail className="mx-auto text-primary-600 mb-4" size={26} />
+            <h2 className="text-2xl md:text-4xl font-playfair font-bold text-gray-900 mb-3">Stay in Style</h2>
+            <p className="text-gray-600 mb-8">Get updates on new collections and exclusive offers.</p>
+            <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row gap-3 max-w-xl mx-auto">
+              <input
+                type="email"
+                placeholder="Enter your email"
+                value={newsletterEmail}
+                onChange={(e) => setNewsletterEmail(e.target.value)}
+                className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+              <button
+                type="submit"
+                disabled={newsletterSubmitting}
+                className="px-6 py-3 rounded-lg bg-primary-600 hover:bg-primary-700 text-white font-semibold disabled:opacity-60 shadow-md"
+              >
+                {newsletterSubmitting ? 'Subscribing...' : 'Subscribe'}
+              </button>
+            </form>
+            {newsletterError && <p className="text-red-600 text-sm mt-3">{newsletterError}</p>}
+            {newsletterMessage && <p className="text-green-600 text-sm mt-3">{newsletterMessage}</p>}
           </div>
         </div>
       </section>
@@ -79,7 +269,7 @@ export default function Home() {
                 <FiTruck size={28} />
               </div>
               <h3 className="text-xl font-semibold mb-2 text-white">Free Shipping</h3>
-              <p className="text-gray-200">On orders over $100</p>
+              <p className="text-gray-200">On orders over ₦80K</p>
             </div>
             <div className="text-center transform hover:scale-105 transition-transform">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gold-500 text-white rounded-full mb-4 shadow-lg">
@@ -92,8 +282,8 @@ export default function Home() {
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gold-500 text-white rounded-full mb-4 shadow-lg">
                 <FiRefreshCw size={28} />
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-white">Easy Returns</h3>
-              <p className="text-gray-200">30-day return policy</p>
+              <h3 className="text-xl font-semibold mb-2 text-white">Hassle-Free Exchanges</h3>
+              <p className="text-gray-200">Designer-backed satisfaction guarantee</p>
             </div>
             <div className="text-center transform hover:scale-105 transition-transform">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gold-500 text-white rounded-full mb-4 shadow-lg">
@@ -524,7 +714,7 @@ export default function Home() {
               <p className="text-sm lg:text-base text-white/85 leading-relaxed">
                 Discover your signature style with our premium, unisex fashion collections designed for everyone—adults and kids alike.
                 <span className="block text-gold-300 font-semibold text-sm mt-2">
-                  ✓ Free shipping on orders over $100!
+                  ✓ Free shipping on orders over ₦80K!
                 </span>
               </p>
 

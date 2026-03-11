@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { isProductSold } from '@/lib/productAvailability'
 import { 
   FiPackage, 
   FiPlus, 
@@ -258,6 +259,9 @@ export default function ProductsPage() {
                             <FiTrash2 className="h-4 w-4" />
                           )}
                         </button>
+                        {isProductSold(product) && (
+                          <span className="text-xs font-semibold text-red-600 uppercase">Sold</span>
+                        )}
                       </div>
                     </td>
                   </tr>

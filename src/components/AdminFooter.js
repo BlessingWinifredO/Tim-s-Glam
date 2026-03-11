@@ -104,7 +104,7 @@ export default function AdminFooter() {
                 <a href="#" className="text-gray-400 hover:text-gold-400 transition-colors">
                   <FiFacebook size={18} />
                 </a>
-                <a href="#" className="text-gray-400 hover:text-gold-400 transition-colors">
+                <a href="https://www.instagram.com/tims.glam?igsh=MWwxNXhhMGwyYWo0eg%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gold-400 transition-colors">
                   <FiInstagram size={18} />
                 </a>
                 <a href="#" className="text-gray-400 hover:text-gold-400 transition-colors">

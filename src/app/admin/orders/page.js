@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { collection, getDocs, updateDoc, doc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { applyInventoryAdjustmentForCompletedOrder } from '@/lib/orderInventory'
 import { 
   FiShoppingBag, 
   FiSearch, 
@@ -57,11 +58,41 @@ export default function OrdersPage() {
   const handleStatusChange = async (orderId, newStatus) => {
     setUpdating(orderId)
     try {
-      const orderRef = doc(db, 'orders', orderId)
-      await updateDoc(orderRef, { status: newStatus })
-      setOrders(orders.map(order => 
-        order.id === orderId ? { ...order, status: newStatus } : order
-      ))
+      const currentOrder = orders.find((order) => order.id === orderId)
+      if (!currentOrder) {
+        throw new Error('Order not found in local state')
+      }
+
+      if (newStatus === 'Completed') {
+        const result = await applyInventoryAdjustmentForCompletedOrder(db, orderId, currentOrder, newStatus)
+        setOrders(orders.map(order => 
+          order.id === orderId
+            ? { ...order, status: newStatus, inventoryAdjusted: result.inventoryAdjusted }
+            : order
+        ))
+      } else {
+        const orderRef = doc(db, 'orders', orderId)
+        await updateDoc(orderRef, { status: newStatus })
+        setOrders(orders.map(order => 
+          order.id === orderId ? { ...order, status: newStatus } : order
+        ))
+      }
+
+      try {
+        await fetch('/api/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'orderStatusUpdated',
+            email: currentOrder.customerEmail,
+            customerName: currentOrder.customerName,
+            orderId,
+            status: newStatus,
+          }),
+        })
+      } catch {
+        // Do not block admin updates on email failures.
+      }
     } catch (err) {
       setError(`Failed to update order: ${err.message}`)
     } finally {

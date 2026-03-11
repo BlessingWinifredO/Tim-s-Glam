@@ -24,8 +24,17 @@ export default function Checkout() {
     city: '',
     postalCode: '',
   })
+  const [phone, setPhone] = useState('')
 
-  const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || ''
+  const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || 'sb'
+  const isSandboxMode = !process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID === 'sb'
+
+  // All calculations and hooks MUST be above any early returns (React rules of hooks)
+  const subtotal = getCartTotal()
+  const shipping = subtotal > 100 ? 0 : 10
+  const tax = subtotal * 0.08
+  const total = subtotal + shipping + tax
+  const paypalAmount = useMemo(() => total.toFixed(2), [total])
 
   if (cart.length === 0) {
     return (
@@ -70,13 +79,6 @@ export default function Checkout() {
     )
   }
 
-  const subtotal = getCartTotal()
-  const shipping = subtotal > 100 ? 0 : 10
-  const tax = subtotal * 0.08
-  const total = subtotal + shipping + tax
-
-  const paypalAmount = useMemo(() => total.toFixed(2), [total])
-
   const onShippingChange = (key, value) => {
     setShippingInfo((prev) => ({
       ...prev,
@@ -89,50 +91,117 @@ export default function Checkout() {
     return required.every((field) => String(shippingInfo[field] || '').trim().length > 0)
   }
 
+  const createOrderRecord = async ({
+    paymentMethod,
+    paymentStatus,
+    paypalOrderId = '',
+    paypalCaptureId = '',
+    shippingAddress = shippingInfo,
+  }) => {
+    const orderPayload = {
+      userId: user.uid,
+      customerName: `${shippingAddress.firstName.trim()} ${shippingAddress.lastName.trim()}`,
+      customerEmail: shippingAddress.email.trim().toLowerCase(),
+      customerAddress: shippingAddress.address.trim(),
+      customerCity: shippingAddress.city.trim(),
+      customerPostalCode: shippingAddress.postalCode.trim(),
+      customerPhone: phone.trim() || 'Not provided',
+      items: cart.map((item) => ({
+        productId: item.id,
+        name: item.name,
+        price: Number(item.price || 0),
+        quantity: Number(item.quantity || 1),
+        selectedSize: item.selectedSize || 'Default',
+        selectedColor: item.selectedColor || 'Default',
+        image: item.image || '',
+      })),
+      subtotal: Number(subtotal.toFixed(2)),
+      shipping: Number(shipping.toFixed(2)),
+      tax: Number(tax.toFixed(2)),
+      totalAmount: Number(total.toFixed(2)),
+      status: 'Processing',
+      paymentMethod,
+      paymentStatus,
+      paypalOrderId,
+      paypalCaptureId,
+      createdAt: serverTimestamp(),
+    }
+
+    const orderRef = await addDoc(collection(db, 'orders'), orderPayload)
+
+    // Send customer order confirmation email (non-blocking)
+    try {
+      await fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'orderPlaced',
+          email: orderPayload.customerEmail,
+          customerName: orderPayload.customerName,
+          orderId: orderRef.id,
+          totalAmount: orderPayload.totalAmount,
+          status: orderPayload.status,
+        }),
+      })
+    } catch {
+      // Ignore notification failure during checkout flow.
+    }
+
+    clearCart()
+    setOrderSuccess({
+      id: orderRef.id,
+      paypalOrderId: paypalOrderId || 'TEST-SANDBOX-CHECKOUT',
+    })
+  }
+
   const handlePayPalApprove = async (data, actions) => {
     try {
       setCheckoutError('')
       setPlacingOrder(true)
 
       const captured = await actions.order.capture()
-
-      const orderPayload = {
-        userId: user.uid,
-        customerName: `${shippingInfo.firstName.trim()} ${shippingInfo.lastName.trim()}`,
-        customerEmail: shippingInfo.email.trim().toLowerCase(),
-        customerAddress: shippingInfo.address.trim(),
-        customerCity: shippingInfo.city.trim(),
-        customerPostalCode: shippingInfo.postalCode.trim(),
-        items: cart.map((item) => ({
-          productId: item.id,
-          name: item.name,
-          price: Number(item.price || 0),
-          quantity: Number(item.quantity || 1),
-          selectedSize: item.selectedSize || 'Default',
-          selectedColor: item.selectedColor || 'Default',
-          image: item.image || '',
-        })),
-        subtotal: Number(subtotal.toFixed(2)),
-        shipping: Number(shipping.toFixed(2)),
-        tax: Number(tax.toFixed(2)),
-        totalAmount: Number(total.toFixed(2)),
-        status: 'Processing',
+      await createOrderRecord({
         paymentMethod: 'paypal',
         paymentStatus: 'Paid',
         paypalOrderId: data.orderID,
         paypalCaptureId: captured?.purchase_units?.[0]?.payments?.captures?.[0]?.id || '',
-        createdAt: serverTimestamp(),
-      }
-
-      const orderRef = await addDoc(collection(db, 'orders'), orderPayload)
-
-      clearCart()
-      setOrderSuccess({
-        id: orderRef.id,
-        paypalOrderId: data.orderID,
       })
     } catch (error) {
       setCheckoutError(error?.message || 'Payment succeeded, but order save failed. Please contact support.')
+    } finally {
+      setPlacingOrder(false)
+    }
+  }
+
+  const handleSandboxTestOrder = async () => {
+    let effectiveShipping = { ...shippingInfo }
+
+    if (!isShippingValid()) {
+      // In sandbox mode, auto-fill missing shipping fields so checkout flow can be tested end-to-end.
+      effectiveShipping = {
+        firstName: shippingInfo.firstName?.trim() || user?.displayName?.split(' ')?.[0] || 'Test',
+        lastName: shippingInfo.lastName?.trim() || user?.displayName?.split(' ')?.slice(1).join(' ') || 'User',
+        email: shippingInfo.email?.trim() || user?.email || 'test@example.com',
+        address: shippingInfo.address?.trim() || '123 Test Street',
+        city: shippingInfo.city?.trim() || 'Lagos',
+        postalCode: shippingInfo.postalCode?.trim() || '100001',
+      }
+      setShippingInfo(effectiveShipping)
+    }
+
+    try {
+      setCheckoutError('')
+      setPlacingOrder(true)
+
+      await createOrderRecord({
+        paymentMethod: 'paypal-sandbox-test',
+        paymentStatus: 'Test Paid',
+        paypalOrderId: `TEST-${Date.now()}`,
+        paypalCaptureId: 'TEST-CAPTURE-ID',
+        shippingAddress: effectiveShipping,
+      })
+    } catch (error) {
+      setCheckoutError(error?.message || 'Test order failed. Please try again.')
     } finally {
       setPlacingOrder(false)
     }
@@ -261,6 +330,16 @@ export default function Checkout() {
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
                     />
                   </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Phone Number</label>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+234 800 000 0000"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -274,6 +353,12 @@ export default function Checkout() {
                 <p className="text-gray-600 mb-4">
                   Use PayPal to complete your payment securely. Card fields were removed as requested.
                 </p>
+
+                {isSandboxMode && (
+                  <div className="mb-4 p-4 rounded-md border border-blue-300 bg-blue-50 text-blue-800 text-sm">
+                    Sandbox mode is active for testing. Use a PayPal sandbox buyer account to test checkout and order placement.
+                  </div>
+                )}
 
                 {!paypalClientId ? (
                   <div className="p-4 rounded-md border border-amber-300 bg-amber-50 text-amber-800 text-sm">
@@ -289,6 +374,17 @@ export default function Checkout() {
                       onError={handlePayPalError}
                     />
                   </PayPalScriptProvider>
+                )}
+
+                {isSandboxMode && (
+                  <button
+                    type="button"
+                    onClick={handleSandboxTestOrder}
+                    disabled={placingOrder}
+                    className="mt-4 w-full py-3 rounded-md border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-800 font-semibold disabled:opacity-60"
+                  >
+                    {placingOrder ? 'Placing Test Order...' : 'Place Test Order (Sandbox)'}
+                  </button>
                 )}
 
                 {checkoutError && (
@@ -355,9 +451,9 @@ export default function Checkout() {
                   </div>
                 </div>
 
-                {subtotal < 100 && (
+                {subtotal < 80000 && (
                   <div className="mt-4 p-3 bg-gold-50 border border-gold-200 rounded-md text-sm text-gray-700">
-                    Add ${(100 - subtotal).toFixed(2)} more for FREE shipping!
+                    Add ₦{(80000 - subtotal).toLocaleString()} more for FREE shipping!
                   </div>
                 )}
 
