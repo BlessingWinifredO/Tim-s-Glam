@@ -56,6 +56,13 @@ export default function About() {
       description: 'Fatima brings expertise in project management and business analysis. She ensures TIM\'S GLAM runs efficiently, coordinates cross-functional initiatives, and provides insights that drive business growth.',
       focus: 'Operations, Analysis & Strategic Growth',
       image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=900&q=80'
+    },
+    {
+      name: 'Paul',
+      role: 'Senior Software Engineer',
+      description: 'Paul is responsible for developing and improving the digital infrastructure of TIM\'S GLAM. With strong expertise in Information Technology, he builds reliable systems, enhances platform features, and ensures a smooth experience for both fashion sellers and customers. Key responsibilities include maintaining core systems, implementing new website improvements, optimizing performance and scalability, collaborating with leadership on technical innovation, and ensuring system stability and reliability.',
+      focus: 'Platform Engineering, Scalability & Reliability',
+      image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=900&q=80'
     }
   ]
 
