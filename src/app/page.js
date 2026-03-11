@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { FiTruck, FiShield, FiRefreshCw, FiAward, FiArrowRight, FiCheckCircle, FiUsers, FiBriefcase, FiMail, FiStar, FiTrendingUp, FiHeart, FiGlobe } from 'react-icons/fi'
+import { FiTruck, FiShield, FiRefreshCw, FiAward, FiArrowRight, FiCheckCircle, FiUsers, FiBriefcase, FiMail, FiStar, FiTrendingUp, FiHeart, FiGlobe, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 import { collection, getDocs, query, where, limit } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { isProductPubliclyAvailable } from '@/lib/productAvailability'
@@ -20,6 +20,8 @@ export default function Home() {
   const [newsletterSubmitting, setNewsletterSubmitting] = useState(false)
   const [newsletterMessage, setNewsletterMessage] = useState('')
   const [newsletterError, setNewsletterError] = useState('')
+  const [activeCategoryIndex, setActiveCategoryIndex] = useState(0)
+  const categorySliderRef = useRef(null)
   
   // Fetch products from Firestore
   useEffect(() => {
@@ -54,13 +56,37 @@ export default function Home() {
   ]
 
   const trendingCategories = [
-    { name: 'Women', href: '/shop/women' },
-    { name: 'Men', href: '/shop/men' },
-    { name: 'Kids', href: '/shop?category=kids' },
-    { name: 'Accessories', href: '/shop' },
-    { name: 'Streetwear', href: '/shop' },
-    { name: 'Luxury', href: '/shop' },
+    { name: 'Women', href: '/shop/women', image: '/home/home-5.jpg' },
+    { name: 'Men', href: '/shop/men', image: '/home/home-1.jpg' },
+    { name: 'Kids', href: '/shop?category=kids', image: '/home/home-6.jpg' },
+    { name: 'Accessories', href: '/shop', image: '/home/home-2.jpg' },
+    { name: 'Streetwear', href: '/shop', image: '/home/home-3.jpg' },
+    { name: 'Luxury', href: '/shop', image: '/home/home-4.jpg' },
   ]
+
+  const scrollCategories = (direction) => {
+    if (!categorySliderRef.current) return
+    const nextIndex =
+      direction === 'next'
+        ? (activeCategoryIndex + 1) % trendingCategories.length
+        : (activeCategoryIndex - 1 + trendingCategories.length) % trendingCategories.length
+
+    categorySliderRef.current.scrollTo({
+      left: nextIndex * categorySliderRef.current.clientWidth,
+      behavior: 'smooth',
+    })
+    setActiveCategoryIndex(nextIndex)
+  }
+
+  const handleCategoryScroll = () => {
+    if (!categorySliderRef.current) return
+    const nextIndex = Math.round(
+      categorySliderRef.current.scrollLeft / categorySliderRef.current.clientWidth
+    )
+    if (nextIndex !== activeCategoryIndex && nextIndex >= 0 && nextIndex < trendingCategories.length) {
+      setActiveCategoryIndex(nextIndex)
+    }
+  }
 
   const handleNewsletterSubmit = async (e) => {
     e.preventDefault()
@@ -154,23 +180,90 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Trending Categories */}
-      <section className="section-padding py-14 md:py-20 bg-gradient-to-r from-gray-50 via-white to-gray-50">
-        <div className="container-custom">
-          <div className="text-center mb-10">
-            <p className="text-gold-500 font-semibold mb-2 tracking-widest uppercase text-sm">Quick Browse</p>
-            <h2 className="heading-md mb-3">Shop by Category</h2>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {trendingCategories.map((category) => (
-              <Link
-                key={category.name}
-                href={category.href}
-                className="bg-white border border-gray-200 rounded-xl py-4 md:py-5 px-3 md:px-4 text-center text-sm md:text-base font-semibold text-gray-800 hover:border-primary-500 hover:text-primary-600 hover:shadow-lg hover:-translate-y-1 transition-all"
+      {/* Trending Categories Slider */}
+      <section className="section-padding py-14 md:py-20 relative overflow-hidden min-h-[460px] flex items-center">
+        {trendingCategories.map((category, index) => (
+          <Image
+            key={category.name}
+            src={category.image}
+            alt={`${category.name} category background`}
+            fill
+            className={`object-cover transition-opacity duration-700 ${
+              index === activeCategoryIndex ? 'opacity-100' : 'opacity-0'
+            }`}
+          />
+        ))}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#120826]/90 via-[#26124f]/86 to-[#09070f]/82"></div>
+
+        <div className="container-custom relative z-10 w-full">
+          <div className="max-w-xl mx-auto w-full overflow-hidden rounded-[2rem] bg-black/20 backdrop-blur-md border border-white/10 shadow-2xl px-4 py-7 sm:px-8 sm:py-9">
+            {/* Header */}
+            <div className="text-center mb-5">
+              <p className="!text-[#c4b5fd] font-semibold mb-1.5 tracking-widest uppercase text-xs">Quick Browse</p>
+              <h2 className="heading-md !text-[#ede9fe]">Shop by Category</h2>
+            </div>
+
+            {/* Slider row: [←] [card] [→] */}
+            <div className="flex items-center gap-2 sm:gap-3 mb-4">
+              <button
+                type="button"
+                onClick={() => scrollCategories('prev')}
+                className="flex-shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary-600 text-white hover:bg-primary-700 shadow-lg transition-colors"
+                aria-label="Previous category"
               >
-                {category.name}
-              </Link>
-            ))}
+                <FiChevronLeft size={18} />
+              </button>
+
+              <div
+                ref={categorySliderRef}
+                className="flex-1 flex overflow-x-auto snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                onScroll={handleCategoryScroll}
+              >
+                {trendingCategories.map((category) => (
+                  <Link
+                    key={category.name}
+                    href={category.href}
+                    className="snap-start shrink-0 w-full flex flex-col items-center justify-center py-8 px-4 text-center bg-white/10 hover:bg-white/15 border border-white/20 rounded-2xl transition-all group"
+                  >
+                    <span className="text-3xl md:text-4xl font-bold text-white">{category.name}</span>
+                    <span className="flex items-center gap-1 text-white/55 text-sm mt-2 group-hover:text-white/80 transition-colors">
+                      Shop now <FiArrowRight size={13} />
+                    </span>
+                  </Link>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => scrollCategories('next')}
+                className="flex-shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary-600 text-white hover:bg-primary-700 shadow-lg transition-colors"
+                aria-label="Next category"
+              >
+                <FiChevronRight size={18} />
+              </button>
+            </div>
+
+            {/* Dot indicators */}
+            <div className="flex justify-center gap-2">
+              {trendingCategories.map((category, index) => (
+                <button
+                  key={`dot-${category.name}`}
+                  type="button"
+                  onClick={() => {
+                    if (!categorySliderRef.current) return
+                    categorySliderRef.current.scrollTo({
+                      left: index * categorySliderRef.current.clientWidth,
+                      behavior: 'smooth',
+                    })
+                    setActiveCategoryIndex(index)
+                  }}
+                  className={`h-2 rounded-full transition-all ${
+                    index === activeCategoryIndex ? 'w-7 bg-[#c4b5fd]' : 'w-2 bg-white/35 hover:bg-white/60'
+                  }`}
+                  aria-label={`Go to ${category.name}`}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </section>

@@ -1,8 +1,13 @@
+"use client"
+
+import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { FiAward, FiUsers, FiHeart, FiTrendingUp, FiShield, FiStar, FiPackage, FiGlobe, FiCheck, FiZap } from 'react-icons/fi'
+import { FiAward, FiUsers, FiHeart, FiTrendingUp, FiShield, FiStar, FiPackage, FiGlobe, FiCheck, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 
 export default function About() {
+  const [activeValueIndex, setActiveValueIndex] = useState(0)
+
   const values = [
     {
       icon: FiStar,
@@ -71,6 +76,14 @@ export default function About() {
       fallbackImage: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=900&q=80'
     }
   ]
+
+  const goToPreviousValue = () => {
+    setActiveValueIndex((prev) => (prev === 0 ? values.length - 1 : prev - 1))
+  }
+
+  const goToNextValue = () => {
+    setActiveValueIndex((prev) => (prev === values.length - 1 ? 0 : prev + 1))
+  }
 
   return (
     <div>
@@ -162,27 +175,72 @@ export default function About() {
       {/* Values Section */}
       <section className="section-padding relative overflow-hidden">
         <div className="values-parallax-hero absolute inset-0"></div>
-        <div className="absolute inset-0 bg-gradient-to-r from-primary-900/88 via-primary-800/78 to-primary-700/88"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-primary-900/94 via-primary-800/90 to-primary-700/92"></div>
 
         <div className="container-custom relative z-10">
-          <div className="text-center mb-12">
+          <div className="text-center mb-10">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-playfair font-bold text-white mb-4">Our Values</h2>
-            <p className="text-lg md:text-xl text-white/90 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-lg md:text-xl text-white max-w-3xl mx-auto leading-relaxed">
               The principles that guide everything we do at TIM&apos;S GLAM
             </p>
             <div className="h-1 w-24 bg-gradient-to-r from-gold-300 to-gold-500 rounded-full mx-auto mt-6"></div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-            {values.map((value, index) => (
-              <div key={index} className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 shadow-2xl hover:bg-white/15 hover:border-gold-300/60 transition-all duration-300 group">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gold-500 text-white rounded-full mb-5 shadow-lg group-hover:scale-105 transition-transform">
-                  <value.icon size={28} />
-                </div>
-                <h3 className="text-2xl font-playfair font-bold text-white mb-3 leading-tight">{value.title}</h3>
-                <p className="text-white/85 text-lg leading-relaxed">{value.description}</p>
+          <div className="max-w-5xl mx-auto">
+            <div className="relative bg-black/25 backdrop-blur-lg border border-white/20 rounded-3xl p-6 md:p-10 shadow-2xl">
+              <div className="flex items-center justify-between gap-4 mb-6">
+                <button
+                  type="button"
+                  onClick={goToPreviousValue}
+                  className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-white/15 hover:bg-white/25 text-white transition-colors"
+                  aria-label="Previous value"
+                >
+                  <FiChevronLeft size={22} />
+                </button>
+
+                <span className="text-xs uppercase tracking-[0.2em] text-gold-300 font-semibold">
+                  Value {activeValueIndex + 1} of {values.length}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={goToNextValue}
+                  className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-white/15 hover:bg-white/25 text-white transition-colors"
+                  aria-label="Next value"
+                >
+                  <FiChevronRight size={22} />
+                </button>
               </div>
-            ))}
+
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gold-500 text-white rounded-full mb-5 shadow-lg">
+                  {(() => {
+                    const Icon = values[activeValueIndex].icon
+                    return <Icon size={28} />
+                  })()}
+                </div>
+                <h3 className="text-3xl md:text-4xl font-playfair font-bold text-white mb-4 leading-tight">
+                  {values[activeValueIndex].title}
+                </h3>
+                <p className="text-white text-lg md:text-xl leading-relaxed max-w-3xl mx-auto">
+                  {values[activeValueIndex].description}
+                </p>
+              </div>
+
+              <div className="flex justify-center gap-2 mt-8">
+                {values.map((value, index) => (
+                  <button
+                    key={value.title}
+                    type="button"
+                    onClick={() => setActiveValueIndex(index)}
+                    className={`h-2.5 rounded-full transition-all ${
+                      index === activeValueIndex ? 'w-8 bg-gold-400' : 'w-2.5 bg-white/45 hover:bg-white/70'
+                    }`}
+                    aria-label={`Show ${value.title}`}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>

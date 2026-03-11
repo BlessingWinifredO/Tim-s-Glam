@@ -137,7 +137,7 @@ export default function ProductCard({ product }) {
           {/* Price */}
           <div className="flex items-center justify-between">
             <span className="text-2xl font-bold text-gold-500">
-              ${priceLabel}
+              ₦{priceLabel}
             </span>
             {inStock && (
               <span className="text-xs text-green-600 font-semibold">In Stock</span>

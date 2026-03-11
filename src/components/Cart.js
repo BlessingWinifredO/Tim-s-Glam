@@ -60,7 +60,7 @@ export default function Cart() {
                       {item.selectedColor} • {item.selectedSize}
                     </p>
                     <p className="text-gold-500 font-semibold mb-2">
-                      ${item.price.toFixed(2)}
+                      ₦{item.price.toFixed(2)}
                     </p>
                     
                     {/* Quantity Controls */}
@@ -100,7 +100,7 @@ export default function Cart() {
           <div className="border-t p-6 bg-gray-50">
             <div className="flex justify-between items-center mb-4">
               <span className="text-lg font-semibold text-gray-700">Total:</span>
-              <span className="text-2xl font-bold text-gold-500">${getCartTotal().toFixed(2)}</span>
+              <span className="text-2xl font-bold text-gold-500">₦{getCartTotal().toFixed(2)}</span>
             </div>
             
             <Link 

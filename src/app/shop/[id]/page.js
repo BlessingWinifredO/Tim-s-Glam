@@ -196,7 +196,7 @@ export default function ProductDetail() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
             {/* Product Image */}
             <div className="bg-white rounded-lg overflow-hidden shadow-lg">
-              <div className="relative h-[500px] lg:h-[600px]">
+              <div className="relative h-[320px] sm:h-[420px] lg:h-[560px]">
                 <Image
                   src={product.image}
                   alt={product.name}
@@ -217,12 +217,12 @@ export default function ProductDetail() {
               <div className="text-sm text-gray-500 uppercase mb-2">
                 {getCollectionLabel()}
               </div>
-              <h1 className="text-4xl font-playfair font-bold text-gray-800 mb-4">
+              <h1 className="text-3xl md:text-4xl font-playfair font-bold text-gray-800 mb-4">
                 {product.name}
               </h1>
               <div className="flex items-center gap-4 mb-6">
-                <span className="text-4xl font-bold text-gold-500">
-                  ${product.price.toFixed(2)}
+                <span className="text-3xl md:text-4xl font-bold text-gold-500">
+                  ₦{product.price.toFixed(2)}
                 </span>
                 {product.inStock ? (
                   <span className="flex items-center gap-2 text-green-600 font-semibold">
