@@ -415,7 +415,7 @@ export default function SettingsPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Shipping Cost ($)
+                      Shipping Cost (₦)
                     </label>
                     <input
                       type="number"

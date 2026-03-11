@@ -156,7 +156,7 @@ export default function OrdersPage() {
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <p className="text-sm text-gray-600 mb-1">Total Revenue</p>
           <p className="text-3xl font-bold text-primary-600">
-            ${stats.totalRevenue.toFixed(2)}
+            ₦{stats.totalRevenue.toFixed(2)}
           </p>
         </div>
       </div>
@@ -266,7 +266,7 @@ export default function OrdersPage() {
                         : 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium">
-                      ${parseFloat(order.totalAmount || 0).toFixed(2)}
+                      ₦{parseFloat(order.totalAmount || 0).toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">

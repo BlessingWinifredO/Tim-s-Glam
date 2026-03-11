@@ -218,7 +218,7 @@ export default function CustomerDetailPage() {
         </div>
         <div className="bg-green-50 rounded-xl p-6 border border-green-100">
           <p className="text-sm text-green-600 font-medium mb-1">Total Spent</p>
-          <p className="text-3xl font-bold text-green-900">${customerStats.totalSpent.toFixed(2)}</p>
+          <p className="text-3xl font-bold text-green-900">₦{customerStats.totalSpent.toFixed(2)}</p>
         </div>
         <div className="bg-blue-50 rounded-xl p-6 border border-blue-100">
           <p className="text-sm text-blue-600 font-medium mb-1">Completed Orders</p>
@@ -227,7 +227,7 @@ export default function CustomerDetailPage() {
         <div className="bg-purple-50 rounded-xl p-6 border border-purple-100">
           <p className="text-sm text-purple-600 font-medium mb-1">Average Order</p>
           <p className="text-3xl font-bold text-purple-900">
-            ${customerStats.totalOrders > 0 ? (customerStats.totalSpent / customerStats.totalOrders).toFixed(2) : '0.00'}
+            ₦{customerStats.totalOrders > 0 ? (customerStats.totalSpent / customerStats.totalOrders).toFixed(2) : '0.00'}
           </p>
         </div>
       </div>
@@ -304,7 +304,7 @@ export default function CustomerDetailPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium">
-                      ${(order.totalAmount || 0).toFixed(2)}
+                      ₦{(order.totalAmount || 0).toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>

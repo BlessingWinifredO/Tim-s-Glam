@@ -207,8 +207,8 @@ export default function CustomersPage() {
     total: customers.length,
     active: customers.filter(c => c.status === 'Active').length,
     unverified: customers.filter(c => c.status === 'Unverified').length,
-    avgOrderValue: customers.length > 0 && customers.filter(c => c.orders > 0).length > 0
-      ? customers.reduce((sum, c) => sum + c.totalSpent, 0) / customers.filter(c => c.orders > 0).length
+    avgOrderValue: customers.length > 0
+      ? customers.reduce((sum, c) => sum + c.totalSpent, 0) / Math.max(customers.reduce((count, c) => count + c.orders, 0), 1)
       : 0
   }
 
@@ -244,7 +244,7 @@ export default function CustomersPage() {
         </div>
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <p className="text-sm text-gray-600 mb-1">Avg. Order Value</p>
-          <p className="text-3xl font-bold text-gray-900">${stats.avgOrderValue.toFixed(2)}</p>
+          <p className="text-3xl font-bold text-gray-900">₦{stats.avgOrderValue.toFixed(2)}</p>
           <p className="text-xs text-gray-500 mt-2">Per completed order</p>
         </div>
       </div>
@@ -341,7 +341,7 @@ export default function CustomersPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium">
-                      ${customer.totalSpent.toFixed(2)}
+                      ₦{customer.totalSpent.toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-600 text-sm">
                       {customer.joined}

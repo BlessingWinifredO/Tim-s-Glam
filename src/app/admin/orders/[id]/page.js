@@ -240,19 +240,19 @@ export default function OrderDetailPage() {
           <div className="space-y-3">
             <div className="flex justify-between items-center pb-3 border-b border-gray-200">
               <span className="text-gray-600">Subtotal</span>
-              <span className="font-medium text-gray-900">${(parseFloat(order.subtotal || 0)).toFixed(2)}</span>
+              <span className="font-medium text-gray-900">₦{(parseFloat(order.subtotal || 0)).toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-center pb-3 border-b border-gray-200">
               <span className="text-gray-600">Shipping</span>
-              <span className="font-medium text-gray-900">${(parseFloat(order.shipping || order.shippingCost || 0)).toFixed(2)}</span>
+              <span className="font-medium text-gray-900">₦{(parseFloat(order.shipping || order.shippingCost || 0)).toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-center pb-3 border-b border-gray-200">
               <span className="text-gray-600">Tax</span>
-              <span className="font-medium text-gray-900">${(parseFloat(order.tax || 0)).toFixed(2)}</span>
+              <span className="font-medium text-gray-900">₦{(parseFloat(order.tax || 0)).toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-center pt-2">
               <span className="font-semibold text-gray-900">Total</span>
-              <span className="text-xl font-bold text-primary-600">${(parseFloat(order.totalAmount || 0)).toFixed(2)}</span>
+              <span className="text-xl font-bold text-primary-600">₦{(parseFloat(order.totalAmount || 0)).toFixed(2)}</span>
             </div>
           </div>
         </div>
@@ -291,10 +291,10 @@ export default function OrderDetailPage() {
                       <p className="font-medium text-gray-700">{item.quantity}</p>
                     </td>
                     <td className="px-4 py-4 text-right">
-                      <p className="font-medium text-gray-900">${(parseFloat(item.price || 0)).toFixed(2)}</p>
+                      <p className="font-medium text-gray-900">₦{(parseFloat(item.price || 0)).toFixed(2)}</p>
                     </td>
                     <td className="px-4 py-4 text-right">
-                      <p className="font-bold text-gray-900">${(parseFloat(item.price || 0) * item.quantity).toFixed(2)}</p>
+                      <p className="font-bold text-gray-900">₦{(parseFloat(item.price || 0) * item.quantity).toFixed(2)}</p>
                     </td>
                   </tr>
                 ))}

@@ -1,28 +1,33 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { FiAward, FiUsers, FiHeart, FiTrendingUp, FiShield, FiStar, FiPackage, FiGlobe, FiCheck } from 'react-icons/fi'
+import { FiAward, FiUsers, FiHeart, FiTrendingUp, FiShield, FiStar, FiPackage, FiGlobe, FiCheck, FiZap } from 'react-icons/fi'
 
 export default function About() {
   const values = [
     {
-      icon: FiHeart,
-      title: 'Passion for Fashion',
-      description: 'We live and breathe fashion, bringing you the latest trends with timeless elegance.'
+      icon: FiStar,
+      title: 'Creativity',
+      description: 'Celebrating unique fashion expression and empowering designers to share their authentic creative voice with the world.'
     },
     {
-      icon: FiUsers,
-      title: 'Inclusivity',
-      description: 'Fashion for everyone. Our unisex designs celebrate diversity and individual expression.'
+      icon: FiTrendingUp,
+      title: 'Innovation',
+      description: 'Combining cutting-edge technology with timeless style to redefine the modern fashion marketplace experience.'
+    },
+    {
+      icon: FiHeart,
+      title: 'Empowerment',
+      description: 'Supporting independent designers with the tools, visibility, and opportunities to grow their brands globally.'
     },
     {
       icon: FiAward,
-      title: 'Premium Quality',
-      description: 'Handpicked materials and exceptional craftsmanship in every piece we offer.'
+      title: 'Quality',
+      description: 'Delivering premium fashion experiences through handpicked materials and exceptional craftsmanship in every piece.'
     },
     {
-      icon: FiShield,
-      title: 'Trust & Transparency',
-      description: 'Honest pricing, clear policies, and a commitment to your satisfaction.'
+      icon: FiGlobe,
+      title: 'Community',
+      description: 'Connecting fashion lovers everywhere, building a vibrant ecosystem where creators and customers thrive together.'
     }
   ]
 
@@ -62,7 +67,8 @@ export default function About() {
       role: 'Senior Software Engineer',
       description: 'Paul is responsible for developing and improving the digital infrastructure of TIM\'S GLAM. With strong expertise in Information Technology, he builds reliable systems, enhances platform features, and ensures a smooth experience for both fashion sellers and customers. Key responsibilities include maintaining core systems, implementing new website improvements, optimizing performance and scalability, collaborating with leadership on technical innovation, and ensuring system stability and reliability.',
       focus: 'Platform Engineering, Scalability & Reliability',
-      image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=900&q=80'
+      image: '/team/Paul.jpg',
+      fallbackImage: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=900&q=80'
     }
   ]
 
@@ -182,6 +188,24 @@ export default function About() {
       </section>
 
       {/* Team Section */}
+            {/* Brand Value Statement */}
+            <section className="section-padding relative overflow-hidden bg-gradient-to-br from-primary-900 via-primary-800 to-primary-900">
+              <div className="absolute top-0 left-0 w-96 h-96 bg-gold-500 opacity-5 rounded-full blur-3xl pointer-events-none"></div>
+              <div className="absolute bottom-0 right-0 w-96 h-96 bg-gold-500 opacity-5 rounded-full blur-3xl pointer-events-none"></div>
+              <div className="container-custom relative z-10 max-w-4xl mx-auto text-center">
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold-500/20 border border-gold-400/40 text-gold-300 text-xs font-semibold tracking-widest uppercase mb-8">
+                  Our Brand Promise
+                </span>
+                <div className="text-gold-400 font-serif text-7xl leading-none opacity-30 mb-2">&ldquo;</div>
+                <blockquote className="text-2xl md:text-3xl lg:text-4xl font-playfair font-bold text-white leading-snug mb-8">
+                  TIM&apos;S GLAM is built to empower fashion creators and connect them with a global audience through innovation, creativity, and community.
+                </blockquote>
+                <div className="h-px w-28 bg-gradient-to-r from-transparent via-gold-400 to-transparent mx-auto mb-6"></div>
+                <p className="text-white/60 text-sm tracking-widest uppercase font-medium">TIM&apos;S GLAM &mdash; Brand Statement</p>
+              </div>
+            </section>
+
+            {/* Team Section */}
       <section className="section-padding bg-white">
         <div className="container-custom">
           <div className="text-center mb-12">

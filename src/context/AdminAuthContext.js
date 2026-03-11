@@ -16,6 +16,11 @@ export function AdminAuthProvider({ children }) {
   const [error, setError] = useState(null)
   const inactivityTimerRef = useRef(null)
 
+  const hasExplicitAdminSession = useCallback(() => {
+    if (typeof window === 'undefined') return false
+    return window.sessionStorage.getItem('adminSessionActive') === '1'
+  }, [])
+
   const getAllowedAdminEmails = useCallback(() => {
     const allowedAdminsRaw = process.env.NEXT_PUBLIC_ADMIN_EMAIL || ''
     return allowedAdminsRaw
@@ -37,11 +42,11 @@ export function AdminAuthProvider({ children }) {
       return
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       const normalizedEmail = String(currentUser?.email || '').trim().toLowerCase()
       const allowedAdminEmails = getAllowedAdminEmails()
 
-      if (currentUser && allowedAdminEmails.includes(normalizedEmail)) {
+      if (currentUser && allowedAdminEmails.includes(normalizedEmail) && hasExplicitAdminSession()) {
         let previous = null
         try {
           previous = JSON.parse(localStorage.getItem('adminUser') || 'null')
@@ -53,6 +58,13 @@ export function AdminAuthProvider({ children }) {
         setAdminUser(adminData)
         localStorage.setItem('adminUser', JSON.stringify(adminData))
       } else {
+        if (currentUser && allowedAdminEmails.includes(normalizedEmail) && !hasExplicitAdminSession()) {
+          try {
+            await signOut(auth)
+          } catch {
+            // Ignore sign-out sync failures.
+          }
+        }
         setAdminUser(null)
         localStorage.removeItem('adminUser')
       }
@@ -61,7 +73,7 @@ export function AdminAuthProvider({ children }) {
     })
 
     return () => unsubscribe()
-  }, [buildAdminData, getAllowedAdminEmails, isAdminRoute])
+  }, [buildAdminData, getAllowedAdminEmails, hasExplicitAdminSession, isAdminRoute])
 
   const adminSignIn = useCallback(async (email, password) => {
     setLoading(true)
@@ -82,6 +94,9 @@ export function AdminAuthProvider({ children }) {
 
       const adminData = buildAdminData(normalizedEmail)
       setAdminUser(adminData)
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem('adminSessionActive', '1')
+      }
       localStorage.setItem('adminUser', JSON.stringify(adminData))
       
       // Keep admin signed in to Firebase for Firestore write permissions
@@ -107,6 +122,9 @@ export function AdminAuthProvider({ children }) {
 
   const adminLogout = useCallback(async () => {
     setAdminUser(null)
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.removeItem('adminSessionActive')
+    }
     localStorage.removeItem('adminUser')
     try {
       await signOut(auth)

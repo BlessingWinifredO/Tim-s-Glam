@@ -178,7 +178,7 @@ export default function AdminDashboard() {
       },
       {
         name: 'Total Revenue',
-        value: `$${dashboardData.totalRevenue.toFixed(2)}`,
+        value: `₦${dashboardData.totalRevenue.toFixed(2)}`,
         icon: FiDollarSign,
         helper: 'Completed orders only',
         bgColor: 'bg-green-50',

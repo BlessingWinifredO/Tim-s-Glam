@@ -117,7 +117,7 @@ export default function ProductsPage() {
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <p className="text-sm text-gray-600 mb-1">Total Value</p>
           <p className="text-3xl font-bold text-primary-600">
-            ${(products.reduce((sum, p) => {
+            ₦{(products.reduce((sum, p) => {
               const stock = p.stock !== undefined ? parseInt(p.stock) : (p.inStock ? 1 : 0);
               return sum + (parseFloat(p.price || 0) * stock);
             }, 0)).toFixed(2)}
@@ -224,7 +224,7 @@ export default function ProductsPage() {
                       {product.category}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium">
-                      ${parseFloat(product.price || 0).toFixed(2)}
+                      ₦{parseFloat(product.price || 0).toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-600">
                       {product.stock !== undefined ? product.stock : (product.inStock ? '∞' : '0')}

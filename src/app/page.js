@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { FiTruck, FiShield, FiRefreshCw, FiAward, FiArrowRight, FiCheckCircle, FiUsers, FiBriefcase, FiMail } from 'react-icons/fi'
+import { FiTruck, FiShield, FiRefreshCw, FiAward, FiArrowRight, FiCheckCircle, FiUsers, FiBriefcase, FiMail, FiStar, FiTrendingUp, FiHeart, FiGlobe } from 'react-icons/fi'
 import { collection, getDocs, query, where, limit } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { isProductPubliclyAvailable } from '@/lib/productAvailability'
@@ -439,6 +439,61 @@ export default function Home() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Our Values & Brand Statement */}
+      <section className="section-padding bg-gradient-to-b from-gray-50 via-white to-gray-50 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-gold-100 opacity-60 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-primary-100 opacity-60 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="container-custom relative z-10">
+
+          {/* Header */}
+          <div className="text-center mb-14">
+            <p className="text-gold-500 font-semibold mb-3 tracking-widest uppercase text-sm">What We Stand For</p>
+            <h2 className="heading-md mb-4">Our Values</h2>
+            <div className="w-24 h-1 bg-gradient-to-r from-primary-600 to-gold-500 mx-auto rounded-full mb-5"></div>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Five principles at the heart of everything we build, create, and stand for at TIM&apos;S GLAM.
+            </p>
+          </div>
+
+          {/* Values Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-16">
+            {[
+              { icon: FiStar,       title: 'Creativity',  desc: 'Celebrating unique fashion expression',      color: 'from-amber-400 to-gold-500' },
+              { icon: FiTrendingUp, title: 'Innovation',  desc: 'Combining technology with style',            color: 'from-blue-500 to-primary-600' },
+              { icon: FiHeart,      title: 'Empowerment', desc: 'Supporting independent designers',           color: 'from-pink-500 to-rose-500' },
+              { icon: FiAward,      title: 'Quality',     desc: 'Delivering premium experiences',             color: 'from-orange-400 to-amber-500' },
+              { icon: FiGlobe,      title: 'Community',   desc: 'Connecting fashion lovers everywhere',       color: 'from-emerald-500 to-teal-600' },
+            ].map((val, i) => (
+              <div key={i} className="group flex flex-col items-center text-center p-7 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${val.color} flex items-center justify-center mb-4 shadow-md group-hover:scale-110 transition-transform duration-300`}>
+                  <val.icon size={26} className="text-white" />
+                </div>
+                <h3 className="text-base font-bold text-gray-900 mb-2">{val.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{val.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Brand Value Statement Banner */}
+          <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-primary-900 via-primary-800 to-primary-900 p-10 md:p-16 text-center shadow-2xl">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(212,175,55,0.12),transparent_70%)] pointer-events-none"></div>
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-gold-400 opacity-5 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="relative z-10">
+              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold-500/20 border border-gold-400/40 text-gold-300 text-xs font-semibold tracking-widest uppercase mb-6">
+                Our Brand Promise
+              </span>
+              <div className="text-gold-400 font-serif text-7xl leading-none opacity-30 mb-2">&ldquo;</div>
+              <p className="text-2xl md:text-3xl lg:text-4xl font-playfair font-bold text-white leading-snug max-w-3xl mx-auto mb-8">
+                TIM&apos;S GLAM is built to empower fashion creators and connect them with a global audience through innovation, creativity, and community.
+              </p>
+              <div className="h-px w-28 bg-gradient-to-r from-transparent via-gold-400 to-transparent mx-auto mb-6"></div>
+              <p className="text-white/50 text-sm tracking-widest uppercase font-medium">TIM&apos;S GLAM &mdash; Brand Statement</p>
+            </div>
+          </div>
+
         </div>
       </section>
 
