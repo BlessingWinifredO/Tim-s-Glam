@@ -109,7 +109,7 @@ function VerifyEmailContent() {
           {mailSent === '0' && (
             <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
               <p className="text-sm text-amber-800">
-                We could not confirm email delivery. Please click "Resend verification code".
+                We could not confirm email delivery. Please click &quot;Resend verification code&quot;.
               </p>
             </div>
           )}
