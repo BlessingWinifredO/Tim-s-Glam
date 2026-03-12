@@ -3,10 +3,12 @@
 import { usePathname } from 'next/navigation'
 import Footer from '@/components/Footer'
 import MobileBottomNav from '@/components/MobileBottomNav'
+import SupportChatLauncher from '@/components/SupportChatLauncher'
 
 export default function LayoutContent({ children }) {
   const pathname = usePathname()
   const isAdminPage = pathname.startsWith('/admin')
+  const isSupportChatPage = pathname === '/support-chat'
 
   return (
     <>
@@ -15,6 +17,7 @@ export default function LayoutContent({ children }) {
       </main>
       {!isAdminPage && <Footer />}
       {!isAdminPage && <MobileBottomNav />}
+      {!isAdminPage && !isSupportChatPage && <SupportChatLauncher />}
     </>
   )
 }

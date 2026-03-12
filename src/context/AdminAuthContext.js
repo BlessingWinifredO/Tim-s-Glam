@@ -111,6 +111,8 @@ export function AdminAuthProvider({ children }) {
         message = 'Invalid email or password.'
       } else if (err?.code === 'auth/admin-restricted-operation') {
         message = 'This Firebase project restricts this sign-in operation. Enable Email/Password provider and create the admin user in Firebase Authentication.'
+      } else if (err?.code === 'auth/network-request-failed') {
+        message = 'Firebase sign-in request was blocked by the browser or network. If you are using Brave, disable Shields for localhost:3000, allow third-party cookies for localhost and firebaseapp.com, then hard refresh and try again.'
       }
 
       setError(message)

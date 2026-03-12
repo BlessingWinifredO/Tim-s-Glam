@@ -50,7 +50,8 @@ export default function Contact() {
       title: 'Online Support',
       line1: 'Live Chat & Email Support',
       line2: 'Available 24/7',
-      action: 'Start Chat'
+      action: 'Start Chat',
+      href: '/support-chat'
     },
     {
       icon: FiPhone,
@@ -179,10 +180,17 @@ export default function Contact() {
                 <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-3">{method.title}</h3>
                 <p className="text-gray-700 font-medium mb-1">{method.line1}</p>
                 <p className="text-gray-500 text-sm mb-4">{method.line2}</p>
-                <span className="inline-flex items-center gap-1.5 text-gold-600 font-semibold text-sm group-hover:gap-2.5 transition-all">
-                  {method.action}
-                  <FiArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                </span>
+                {method.href ? (
+                  <Link href={method.href} className="inline-flex items-center gap-1.5 text-gold-600 font-semibold text-sm group-hover:gap-2.5 transition-all">
+                    {method.action}
+                    <FiArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-gold-600 font-semibold text-sm group-hover:gap-2.5 transition-all">
+                    {method.action}
+                    <FiArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -458,8 +466,8 @@ export default function Contact() {
             <p className="text-white/90 mb-6 max-w-xl mx-auto">
               Our support team is here to help you find the answers you need.
             </p>
-            <Link href="/shop" className="inline-flex items-center justify-center gap-2 bg-white text-primary-700 hover:bg-gray-100 font-semibold px-8 py-4 rounded-xl transition-all shadow-lg">
-              Browse Our Shop
+            <Link href="/support-chat" className="inline-flex items-center justify-center gap-2 bg-white text-primary-700 hover:bg-gray-100 font-semibold px-8 py-4 rounded-xl transition-all shadow-lg">
+              Customer Support Chat
               <FiArrowRight size={18} />
             </Link>
           </div>
