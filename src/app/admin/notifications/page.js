@@ -16,6 +16,20 @@ export default function AdminNotificationsPage() {
   const [error, setError] = useState('')
   const [logs, setLogs] = useState([])
   const [logsLoading, setLogsLoading] = useState(true)
+  const [smtpStatus, setSmtpStatus] = useState(null)
+
+  const loadSmtpStatus = async () => {
+    try {
+      const response = await fetch('/api/notify')
+      const result = await response.json()
+      if (!response.ok) {
+        throw new Error(result?.error || 'Failed to load SMTP status.')
+      }
+      setSmtpStatus(result.status || null)
+    } catch (err) {
+      setError((current) => current || err?.message || 'Failed to load SMTP status.')
+    }
+  }
 
   const loadLogs = async () => {
     try {
@@ -35,6 +49,7 @@ export default function AdminNotificationsPage() {
 
   useEffect(() => {
     loadLogs()
+    loadSmtpStatus()
   }, [])
 
   const onChange = (field, value) => {
@@ -100,6 +115,54 @@ export default function AdminNotificationsPage() {
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
           <FiX className="text-red-600 h-5 w-5" />
           <p className="text-red-700">{error}</p>
+        </div>
+      )}
+
+      {smtpStatus && (
+        <div className={`mb-6 p-4 rounded-lg border ${
+          smtpStatus.testMode
+            ? 'bg-blue-50 border-blue-300'
+            : smtpStatus.verified
+              ? 'bg-green-50 border-green-200'
+              : 'bg-amber-50 border-amber-200'
+        }`}>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className={`font-semibold ${
+                smtpStatus.testMode ? 'text-blue-800' : smtpStatus.verified ? 'text-green-800' : 'text-amber-800'
+              }`}>
+                {smtpStatus.testMode
+                  ? 'Test Mode — Ethereal inbox (no real delivery)'
+                  : smtpStatus.verified
+                    ? 'SMTP is configured and verified.'
+                    : 'SMTP needs attention before emails can send reliably.'}
+              </p>
+              <div className={`text-sm mt-1 space-y-1 ${
+                smtpStatus.testMode ? 'text-blue-700' : smtpStatus.verified ? 'text-green-700' : 'text-amber-700'
+              }`}>
+                {smtpStatus.testMode ? (
+                  <p>Emails are captured by Ethereal. Check the server console log for preview URLs after sending. Add SMTP credentials to <strong>.env.local</strong> to enable real delivery.</p>
+                ) : (
+                  <>
+                    <p>From: {smtpStatus.from || 'Not set'}</p>
+                    <p>Host/Service: {smtpStatus.host || smtpStatus.service || 'Not set'} {smtpStatus.port ? `(${smtpStatus.port})` : ''}</p>
+                  </>
+                )}
+                {Array.isArray(smtpStatus.missing) && smtpStatus.missing.length > 0 && !smtpStatus.testMode && (
+                  <p>Missing: {smtpStatus.missing.join(', ')}</p>
+                )}
+                {smtpStatus.verifyError && !smtpStatus.testMode && <p>Error: {smtpStatus.verifyError}</p>}
+                {smtpStatus.testModeNote && <p className="italic">{smtpStatus.testModeNote}</p>}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={loadSmtpStatus}
+              className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              Recheck SMTP
+            </button>
+          </div>
         </div>
       )}
 

@@ -1,22 +1,6 @@
 import { NextResponse } from 'next/server'
-import nodemailer from 'nodemailer'
 import { getAdminDb } from '@/lib/firebase-admin'
-
-function getTransporter() {
-  const host = process.env.SMTP_HOST
-  const port = Number(process.env.SMTP_PORT || 587)
-  const user = process.env.SMTP_USER
-  const pass = process.env.SMTP_PASSWORD
-
-  if (!host || !user || !pass) return null
-
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass },
-  })
-}
+import { getEmailConfigStatus, sendEmail, verifyEmailTransporter } from '@/lib/email'
 
 function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase()
@@ -70,20 +54,6 @@ async function getBroadcastRecipients() {
   return Array.from(emails)
 }
 
-async function sendMail({ to, subject, html }) {
-  const transporter = getTransporter()
-  if (!transporter) {
-    throw new Error('SMTP is not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, and SMTP_FROM in .env.local')
-  }
-
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
-    to,
-    subject,
-    html,
-  })
-}
-
 async function logEmailAction(logEntry) {
   try {
     const db = getAdminDb()
@@ -94,6 +64,28 @@ async function logEmailAction(logEntry) {
   } catch (err) {
     console.error('[emailLog] Failed to log action:', err)
   }
+}
+
+export async function GET() {
+  const configStatus = getEmailConfigStatus()
+  const verifyStatus = await verifyEmailTransporter()
+
+  return NextResponse.json({
+    success: true,
+    status: {
+      configured: configStatus.configured,
+      testMode: configStatus.testMode || false,
+      missing: configStatus.missing,
+      host: configStatus.host,
+      port: configStatus.port,
+      from: configStatus.from,
+      verified: verifyStatus.ok,
+      testModeNote: configStatus.testMode
+        ? 'No SMTP configured — using Ethereal test inbox. Emails are captured but not delivered to real inboxes.'
+        : null,
+      verifyError: verifyStatus.error,
+    },
+  })
 }
 
 export async function POST(request) {
@@ -116,7 +108,7 @@ export async function POST(request) {
       }
 
       const subject = "Welcome to TIM'S GLAM"
-      await sendMail({
+      const emailResult = await sendEmail({
         to: email,
         subject,
         html: wrapTemplate(
@@ -136,7 +128,11 @@ export async function POST(request) {
         metadata: { fullName },
       })
 
-      return NextResponse.json({ success: true })
+      return NextResponse.json({
+        success: true,
+        testMode: emailResult.testMode || false,
+        ...(emailResult.previewUrl ? { previewUrl: emailResult.previewUrl } : {}),
+      })
     }
 
     if (action === 'orderPlaced') {
@@ -151,14 +147,14 @@ export async function POST(request) {
       const status = String(payload?.status || 'Processing')
 
       const subject = `Order Confirmation - #${orderId.slice(0, 8).toUpperCase()}`
-      await sendMail({
+      const emailResult = await sendEmail({
         to: email,
         subject,
         html: wrapTemplate(
           'Order Placed Successfully',
           `<p>Hi ${customerName}, your order has been placed.</p>
            <p><strong>Order ID:</strong> #${orderId.slice(0, 8).toUpperCase()}</p>
-           <p><strong>Total:</strong> $${totalAmount}</p>
+           <p><strong>Total:</strong> ₦${totalAmount}</p>
            <p><strong>Status:</strong> ${status}</p>
            <p><a href="${appLink('/account')}" style="color:#4a1d75; font-weight:600;">View Account</a></p>`
         ),
@@ -173,7 +169,11 @@ export async function POST(request) {
         metadata: { orderId: orderId.slice(0, 8).toUpperCase(), totalAmount, orderStatus: status },
       })
 
-      return NextResponse.json({ success: true })
+      return NextResponse.json({
+        success: true,
+        testMode: emailResult.testMode || false,
+        ...(emailResult.previewUrl ? { previewUrl: emailResult.previewUrl } : {}),
+      })
     }
 
     if (action === 'orderStatusUpdated') {
@@ -187,7 +187,7 @@ export async function POST(request) {
       const status = String(payload?.status || 'Processing')
 
       const subject = `Order Status Updated - #${orderId.slice(0, 8).toUpperCase()}`
-      await sendMail({
+      const emailResult = await sendEmail({
         to: email,
         subject,
         html: wrapTemplate(
@@ -208,7 +208,11 @@ export async function POST(request) {
         metadata: { orderId: orderId.slice(0, 8).toUpperCase(), newStatus: status },
       })
 
-      return NextResponse.json({ success: true })
+      return NextResponse.json({
+        success: true,
+        testMode: emailResult.testMode || false,
+        ...(emailResult.previewUrl ? { previewUrl: emailResult.previewUrl } : {}),
+      })
     }
 
     if (action === 'newProductBroadcast') {
@@ -239,7 +243,7 @@ export async function POST(request) {
          <p><a href="${appLink(`/shop/${productId}`)}" style="color:#4a1d75; font-weight:600;">View Product</a></p>`
       )
 
-      const results = await Promise.allSettled(recipients.map((to) => sendMail({ to, subject, html })))
+      const results = await Promise.allSettled(recipients.map((to) => sendEmail({ to, subject, html })))
       const sent = results.filter((entry) => entry.status === 'fulfilled').length
       const broadcastStatus = sent === recipients.length ? 'success' : sent === 0 ? 'failure' : 'partial'
       await logEmailAction({
@@ -283,7 +287,7 @@ export async function POST(request) {
          <p><a href="${appLink(`/blog/${blogId}`)}" style="color:#4a1d75; font-weight:600;">Read Article</a></p>`
       )
 
-      const results = await Promise.allSettled(recipients.map((to) => sendMail({ to, subject, html })))
+      const results = await Promise.allSettled(recipients.map((to) => sendEmail({ to, subject, html })))
       const sent = results.filter((entry) => entry.status === 'fulfilled').length
       const broadcastStatus = sent === recipients.length ? 'success' : sent === 0 ? 'failure' : 'partial'
       await logEmailAction({
@@ -308,7 +312,7 @@ export async function POST(request) {
         return NextResponse.json({ error: 'to, subject and message are required' }, { status: 400 })
       }
 
-      await sendMail({
+      const emailResult = await sendEmail({
         to,
         subject,
         html: wrapTemplate(subject, `<p>${message.replace(/\n/g, '<br/>')}</p>`),
@@ -323,7 +327,11 @@ export async function POST(request) {
         metadata: { messageLength: message.length },
       })
 
-      return NextResponse.json({ success: true })
+      return NextResponse.json({
+        success: true,
+        testMode: emailResult.testMode || false,
+        ...(emailResult.previewUrl ? { previewUrl: emailResult.previewUrl } : {}),
+      })
     }
 
     return NextResponse.json({ error: 'Unsupported action' }, { status: 400 })

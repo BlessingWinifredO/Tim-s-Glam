@@ -1,23 +1,5 @@
 import { NextResponse } from 'next/server'
-import nodemailer from 'nodemailer'
-
-function getTransporter() {
-  const host = process.env.SMTP_HOST
-  const port = Number(process.env.SMTP_PORT || 587)
-  const user = process.env.SMTP_USER
-  const pass = process.env.SMTP_PASSWORD
-
-  if (!host || !user || !pass) {
-    return null
-  }
-
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass },
-  })
-}
+import { sendEmail } from '@/lib/email'
 
 function getEmailTemplate(type, code) {
   if (type === 'reset') {
@@ -59,27 +41,15 @@ export async function POST(request) {
       return NextResponse.json({ error: 'email, code and type are required' }, { status: 400 })
     }
 
-    const transporter = getTransporter()
-    if (!transporter) {
-      return NextResponse.json(
-        {
-          error: 'SMTP is not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, and SMTP_FROM in .env.local',
-          code: 'SMTP_NOT_CONFIGURED',
-        },
-        { status: 503 }
-      )
-    }
-
     const { subject, html } = getEmailTemplate(type, code)
 
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
-      to: email,
-      subject,
-      html,
-    })
+    const result = await sendEmail({ to: email, subject, html })
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({
+      success: true,
+      testMode: result.testMode || false,
+      ...(result.previewUrl ? { previewUrl: result.previewUrl } : {}),
+    })
   } catch (error) {
     return NextResponse.json(
       { error: error?.message || 'Failed to send email code' },
