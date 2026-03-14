@@ -29,7 +29,7 @@ export default function Checkout() {
   // Dynamic tax and shipping from Firestore appSettings
   const [taxRate, setTaxRate] = useState(0.08)
   const [shippingCost, setShippingCost] = useState(2000)
-  const [freeShippingThreshold, setFreeShippingThreshold] = useState(80000)
+  const [freeShippingThreshold, setFreeShippingThreshold] = useState(100000)
 
   useEffect(() => {
     getDoc(doc(db, 'appSettings', 'main')).then((snap) => {

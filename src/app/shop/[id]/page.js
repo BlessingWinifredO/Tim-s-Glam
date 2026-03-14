@@ -362,8 +362,8 @@ export default function ProductDetail() {
                 <div className="flex items-center gap-3 text-gray-600">
                   <FiRefreshCw size={24} className="text-gold-500" />
                   <div>
-                    <p className="font-semibold text-gray-800">Hassle-Free Exchanges</p>
-                    <p className="text-sm">Designer-backed satisfaction guarantee</p>
+                    <p className="font-semibold text-gray-800">The GLAM Exchange Promise</p>
+                    <p className="text-sm">Wrong size? Swap it stress-free within 7 days</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 text-gray-600">

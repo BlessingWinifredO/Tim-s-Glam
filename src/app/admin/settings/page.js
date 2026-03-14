@@ -48,7 +48,7 @@ const DEFAULT_SETTINGS = {
     currency: 'USD',
     taxRate: 10,
     shippingCost: 2000,
-    freeShippingThreshold: 80000,
+    freeShippingThreshold: 100000,
   },
 }
 
@@ -432,7 +432,7 @@ export default function SettingsPage() {
                     </label>
                     <input
                       type="number"
-                      value={payment.freeShippingThreshold ?? 80000}
+                      value={payment.freeShippingThreshold ?? 100000}
                       onChange={(e) => setPayment({ ...payment, freeShippingThreshold: parseFloat(e.target.value) })}
                       step="1"
                       className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"

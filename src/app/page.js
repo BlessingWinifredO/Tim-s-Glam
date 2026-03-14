@@ -362,7 +362,7 @@ export default function Home() {
                 <FiTruck size={28} />
               </div>
               <h3 className="text-xl font-semibold mb-2 text-white">Free Shipping</h3>
-              <p className="text-gray-200">On orders over ₦80K</p>
+              <p className="text-gray-200">On orders over ₦100K</p>
             </div>
             <div className="text-center transform hover:scale-105 transition-transform">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gold-500 text-white rounded-full mb-4 shadow-lg">
@@ -375,8 +375,8 @@ export default function Home() {
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gold-500 text-white rounded-full mb-4 shadow-lg">
                 <FiRefreshCw size={28} />
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-white">Hassle-Free Exchanges</h3>
-              <p className="text-gray-200">Designer-backed satisfaction guarantee</p>
+              <h3 className="text-xl font-semibold mb-2 text-white">The GLAM Exchange Promise</h3>
+              <p className="text-gray-200">Wrong size? Swap it stress-free within 7 days</p>
             </div>
             <div className="text-center transform hover:scale-105 transition-transform">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gold-500 text-white rounded-full mb-4 shadow-lg">
@@ -862,7 +862,7 @@ export default function Home() {
               <p className="text-sm lg:text-base text-white/85 leading-relaxed">
                 Discover your signature style with our premium, unisex fashion collections designed for everyone—adults and kids alike.
                 <span className="block text-gold-300 font-semibold text-sm mt-2">
-                  ✓ Free shipping on orders over ₦80K!
+                  ✓ Free shipping on orders over ₦100K!
                 </span>
               </p>
 

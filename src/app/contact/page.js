@@ -127,7 +127,7 @@ export default function Contact() {
     },
     {
       question: 'What is your return policy?',
-      answer: 'We offer hassle-free exchanges on all unworn items with original tags, backed by our designer satisfaction guarantee. See our Returns page for details.'
+      answer: 'We offer easy exchanges on all unworn items with original tags within 7 days of delivery. Wrong size? No drama — just reach out and we\'ll sort it. See our Returns page for full details.'
     },
     {
       question: 'Do you ship internationally?',

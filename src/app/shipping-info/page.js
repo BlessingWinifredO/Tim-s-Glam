@@ -20,7 +20,7 @@ export default function ShippingInfo() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
               <FiTruck size={28} className="text-gold-500 mx-auto mb-2" />
               <p className="font-bold text-gray-800">Free Shipping</p>
-              <p className="text-sm text-gray-500 mt-1">On orders over ₦80,000</p>
+              <p className="text-sm text-gray-500 mt-1">On orders over ₦100,000</p>
             </div>
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
               <FiClock size={28} className="text-gold-500 mx-auto mb-2" />
@@ -72,7 +72,7 @@ export default function ShippingInfo() {
             <div>
               <h2 className="text-2xl font-playfair font-bold text-primary-600 mb-3">Shipping Rates</h2>
               <ul className="list-disc pl-6 space-y-2">
-                <li><strong>Orders over ₦80,000:</strong> FREE shipping</li>
+                <li><strong>Orders over ₦100,000:</strong> FREE shipping</li>
                 <li><strong>Standard shipping:</strong> ₦2,000 flat rate</li>
               </ul>
               <p className="mt-2 text-sm text-gray-500">Shipping rates are calculated and displayed at checkout before payment.</p>
