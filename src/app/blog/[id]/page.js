@@ -67,6 +67,43 @@ export default function BlogPost() {
   const router = useRouter()
   const [post, setPost] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [copied, setCopied] = useState(false)
+
+  const getShareUrl = () => {
+    if (typeof window !== 'undefined') return window.location.href
+    return `${process.env.NEXT_PUBLIC_APP_URL || 'https://tims-glam.com'}/blog/${params?.id}`
+  }
+
+  const handleShare = async () => {
+    const url = getShareUrl()
+    const title = post?.title || "TIM'S GLAM Blog"
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({ title, url })
+        return
+      } catch (_) {
+        // user cancelled or browser blocked — fall through to clipboard
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    } catch (_) {
+      // clipboard unavailable
+    }
+  }
+
+  const shareTo = (platform) => {
+    const url = encodeURIComponent(getShareUrl())
+    const text = encodeURIComponent(post?.title || "TIM'S GLAM Blog")
+    const links = {
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
+      twitter: `https://twitter.com/intent/tweet?url=${url}&text=${text}`,
+      pinterest: `https://pinterest.com/pin/create/button/?url=${url}&description=${text}`,
+    }
+    window.open(links[platform], '_blank', 'noopener,noreferrer,width=600,height=400')
+  }
 
   const relatedPosts = useMemo(() => {
     if (!post) return []
@@ -176,9 +213,12 @@ export default function BlogPost() {
                 {post.readTime}
               </span>
               <span>{post.date}</span>
-              <button className="ml-auto flex items-center gap-2 text-gold-500 hover:text-gold-600 transition-colors">
+              <button
+                onClick={handleShare}
+                className="ml-auto flex items-center gap-2 text-gold-500 hover:text-gold-600 transition-colors"
+              >
                 <FiShare2 size={18} />
-                Share
+                {copied ? 'Link Copied!' : 'Share'}
               </button>
             </div>
           </header>
@@ -212,13 +252,22 @@ export default function BlogPost() {
             </h3>
             <p className="text-gray-600 mb-6">Share it with your friends and family!</p>
             <div className="flex justify-center gap-4">
-              <button className="bg-white px-6 py-3 rounded-md shadow-md hover:shadow-lg transition-all">
+              <button
+                onClick={() => shareTo('facebook')}
+                className="bg-white px-6 py-3 rounded-md shadow-md hover:shadow-lg transition-all hover:bg-blue-50 text-blue-700 font-medium"
+              >
                 Facebook
               </button>
-              <button className="bg-white px-6 py-3 rounded-md shadow-md hover:shadow-lg transition-all">
+              <button
+                onClick={() => shareTo('twitter')}
+                className="bg-white px-6 py-3 rounded-md shadow-md hover:shadow-lg transition-all hover:bg-sky-50 text-sky-600 font-medium"
+              >
                 Twitter
               </button>
-              <button className="bg-white px-6 py-3 rounded-md shadow-md hover:shadow-lg transition-all">
+              <button
+                onClick={() => shareTo('pinterest')}
+                className="bg-white px-6 py-3 rounded-md shadow-md hover:shadow-lg transition-all hover:bg-red-50 text-red-600 font-medium"
+              >
                 Pinterest
               </button>
             </div>

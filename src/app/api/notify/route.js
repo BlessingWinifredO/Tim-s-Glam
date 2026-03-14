@@ -96,7 +96,9 @@ function getAllowedAdminEmails() {
 // Broadcast actions can only be triggered by an authenticated admin session.
 // Transactional actions (welcome, orderPlaced, etc.) are called internally
 // from checkout / auth flows and are validated by the presence of a valid payload.
-const BROADCAST_ACTIONS = new Set(['newProductBroadcast', 'newBlogBroadcast', 'customEmail'])
+// customEmail is NOT in this set — it is allowed from the contact form (public),
+// but is restricted to sending only to whitelisted admin recipients inside its handler.
+const BROADCAST_ACTIONS = new Set(['newProductBroadcast', 'newBlogBroadcast'])
 
 export async function POST(request) {
   let payload = null
@@ -330,6 +332,12 @@ export async function POST(request) {
 
       if (!isValidEmail(to) || !subject || !message) {
         return NextResponse.json({ error: 'to, subject and message are required' }, { status: 400 })
+      }
+
+      // Prevent open relay: only allow delivery to known admin addresses
+      const allowedAdmins = getAllowedAdminEmails()
+      if (!allowedAdmins.includes(to)) {
+        return NextResponse.json({ error: 'Recipient not allowed.' }, { status: 403 })
       }
 
       const emailResult = await sendEmail({

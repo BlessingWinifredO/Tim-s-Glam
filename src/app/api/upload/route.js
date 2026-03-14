@@ -47,8 +47,15 @@ export async function POST(request) {
     // Create FormData for Cloudinary
     const cloudinaryFormData = new FormData()
     cloudinaryFormData.append('file', file)
-    const cloudName = process.env.CLOUDINARY_CLOUD_NAME || 'dwzlhdakm'
-    const uploadPreset = process.env.CLOUDINARY_UPLOAD_PRESET || 'tims_glam_unsigned'
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME
+    const uploadPreset = process.env.CLOUDINARY_UPLOAD_PRESET
+
+    if (!cloudName || !uploadPreset) {
+      return NextResponse.json(
+        { error: 'Image upload is not configured. Set CLOUDINARY_CLOUD_NAME and CLOUDINARY_UPLOAD_PRESET.' },
+        { status: 500 }
+      )
+    }
     cloudinaryFormData.append('upload_preset', uploadPreset)
 
     // Upload to Cloudinary

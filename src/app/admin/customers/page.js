@@ -11,7 +11,10 @@ import {
   FiEye, 
   FiLoader,
   FiAlertCircle,
-  FiTrash2
+  FiTrash2,
+  FiLock,
+  FiEyeOff,
+  FiX
 } from 'react-icons/fi'
 
 export default function CustomersPage() {
@@ -23,6 +26,10 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [deletingCustomer, setDeletingCustomer] = useState('')
+  const [deleteModal, setDeleteModal] = useState(null) // { customer } | null
+  const [deletePassword, setDeletePassword] = useState('')
+  const [deletePasswordVisible, setDeletePasswordVisible] = useState(false)
+  const [deleteModalError, setDeleteModalError] = useState('')
 
   // Fetch customers and orders data
   useEffect(() => {
@@ -151,28 +158,33 @@ export default function CustomersPage() {
     customer.email?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const handleDeleteCustomer = async (customer) => {
-    const confirmed = window.confirm(
-      `Delete customer ${customer.email}? This removes Authentication account and Firestore data (including orders).`
-    )
-    if (!confirmed) return
+  const handleDeleteCustomer = (customer) => {
+    setDeleteModal({ customer })
+    setDeletePassword('')
+    setDeletePasswordVisible(false)
+    setDeleteModalError('')
+  }
+
+  const confirmDeleteCustomer = async () => {
+    if (!deleteModal) return
+    const { customer } = deleteModal
+
+    if (!deletePassword) {
+      setDeleteModalError('Please enter your admin password.')
+      return
+    }
 
     const adminRaw = window.localStorage.getItem('adminUser')
     const adminData = adminRaw ? JSON.parse(adminRaw) : null
     const adminEmail = adminData?.email || ''
 
     if (!adminEmail) {
-      setError('Admin session missing. Please sign in as admin again.')
-      return
-    }
-
-    const adminPassword = window.prompt('Enter your admin password to confirm deletion:')
-    if (!adminPassword) {
+      setDeleteModalError('Admin session missing. Please sign in again.')
       return
     }
 
     setDeletingCustomer(customer.email)
-    setError('')
+    setDeleteModalError('')
 
     try {
       const response = await fetch('/api/admin/delete-customer', {
@@ -182,7 +194,7 @@ export default function CustomersPage() {
           customerUid: customer.uid || null,
           customerEmail: customer.email,
           adminEmail,
-          adminPassword,
+          adminPassword: deletePassword,
           deleteOrders: true,
         }),
       })
@@ -193,11 +205,10 @@ export default function CustomersPage() {
       }
 
       setCustomers((prev) => prev.filter((item) => item.email !== customer.email))
-      
-      // Notify dashboard to refresh its customer count
+      setDeleteModal(null)
       triggerDashboardRefresh()
     } catch (err) {
-      setError(err?.message || 'Failed to delete customer.')
+      setDeleteModalError(err?.message || 'Failed to delete customer.')
     } finally {
       setDeletingCustomer('')
     }
@@ -393,6 +404,88 @@ export default function CustomersPage() {
               Showing <span className="font-medium">{filteredCustomers.length}</span> of{' '}
               <span className="font-medium">{customers.length}</span> customers
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 md:p-8 relative">
+            <button
+              type="button"
+              onClick={() => setDeleteModal(null)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+              disabled={!!deletingCustomer}
+            >
+              <FiX size={20} />
+            </button>
+
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <FiTrash2 className="text-red-600" size={18} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Delete Customer</h3>
+                <p className="text-sm text-gray-500">{deleteModal.customer.email}</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-5">
+              This will permanently delete the customer&apos;s account and all associated orders from Firestore. This action cannot be undone.
+            </p>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <FiLock className="inline mr-1" size={14} />
+                Confirm with your admin password
+              </label>
+              <div className="relative">
+                <input
+                  type={deletePasswordVisible ? 'text' : 'password'}
+                  value={deletePassword}
+                  onChange={(e) => { setDeletePassword(e.target.value); setDeleteModalError('') }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') confirmDeleteCustomer() }}
+                  placeholder="Enter admin password"
+                  className="w-full px-4 py-2.5 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 text-sm"
+                  disabled={!!deletingCustomer}
+                />
+                <button
+                  type="button"
+                  onClick={() => setDeletePasswordVisible((v) => !v)}
+                  className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                  tabIndex={-1}
+                >
+                  {deletePasswordVisible ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                </button>
+              </div>
+              {deleteModalError && (
+                <p className="mt-2 text-sm text-red-600">{deleteModalError}</p>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteModal(null)}
+                disabled={!!deletingCustomer}
+                className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm font-medium disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteCustomer}
+                disabled={!!deletingCustomer || !deletePassword}
+                className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {deletingCustomer ? (
+                  <><FiLoader className="animate-spin" size={16} /> Deleting…</>
+                ) : (
+                  <><FiTrash2 size={16} /> Delete Customer</>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
