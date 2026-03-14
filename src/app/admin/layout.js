@@ -53,7 +53,7 @@ export default function AdminLayout({ children }) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="admin-shell min-h-screen flex flex-col">
       <div className="flex flex-1">
         {/* Sidebar */}
         <AdminSidebar
@@ -62,10 +62,10 @@ export default function AdminLayout({ children }) {
         />
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col lg:pl-72">
+        <div className="flex-1 flex flex-col lg:pl-[18rem]">
           <AdminHeader onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)} />
-          <main className="flex-1 p-4 sm:p-6 lg:p-8">
-            <div className="max-w-7xl">
+          <main className="flex-1 p-3 sm:p-5 lg:p-7">
+            <div className="admin-page-frame max-w-[1280px] mx-auto">
               {children}
             </div>
           </main>

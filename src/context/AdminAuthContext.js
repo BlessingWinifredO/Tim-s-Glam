@@ -42,6 +42,12 @@ export function AdminAuthProvider({ children }) {
       return
     }
 
+    // Show admin signin form immediately when there is no explicit admin session.
+    // This avoids an unnecessary full-screen loading state on /admin/signin.
+    if (!hasExplicitAdminSession()) {
+      setLoading(false)
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       const normalizedEmail = String(currentUser?.email || '').trim().toLowerCase()
       const allowedAdminEmails = getAllowedAdminEmails()

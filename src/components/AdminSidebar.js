@@ -15,7 +15,9 @@ import {
   FiSettings,
   FiLogOut,
   FiChevronRight,
-  FiMail
+  FiMail,
+  FiX,
+  FiBarChart2
 } from 'react-icons/fi'
 
 const navigation = [
@@ -89,59 +91,68 @@ export default function AdminSidebar({ isOpen, onClose }) {
         />
       )}
 
-      <aside className={`fixed inset-y-0 left-0 z-50 w-72 transform transition-transform duration-300 lg:translate-x-0 ${
+      <aside className={`fixed inset-y-0 left-0 z-50 w-[18rem] transform transition-transform duration-300 lg:translate-x-0 ${
         isOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
-        <div className="flex min-h-0 h-full flex-1 flex-col bg-gradient-to-b from-primary-900 via-primary-800 to-primary-900">
-          <div className="flex flex-1 flex-col overflow-y-auto pt-6 pb-4 px-4">
+        <div className="flex min-h-0 h-full flex-1 flex-col bg-slate-950 text-slate-100 border-r border-slate-800">
+          <div className="flex flex-1 flex-col overflow-y-auto pt-5 pb-4 px-4">
             {/* Logo / Brand */}
-            <div className="mb-8">
-              <Link href="/admin" className="flex items-center group">
-                <div className="w-12 h-12 bg-gradient-to-br from-gold-400 to-gold-600 rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all">
-                  <span className="text-white font-bold text-xl">TG</span>
+            <div className="mb-7 flex items-center justify-between">
+              <Link href="/admin" className="flex items-center gap-3 group" onClick={onClose}>
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500 to-indigo-500 flex items-center justify-center shadow-lg">
+                  <span className="text-white font-bold text-lg">TG</span>
                 </div>
-                <div className="ml-4">
-                  <h2 className="text-white font-playfair font-bold text-lg leading-tight">TIM&apos;S GLAM</h2>
-                  <p className="text-gold-300 text-xs font-semibold">Admin Control</p>
+                <div>
+                  <h2 className="text-white font-semibold text-base leading-tight">TIM&apos;S GLAM</h2>
+                  <p className="text-cyan-300 text-[11px] font-semibold tracking-wide uppercase">Admin Console</p>
                 </div>
               </Link>
+              <button
+                type="button"
+                className="lg:hidden w-8 h-8 rounded-md bg-slate-900 border border-slate-700 text-slate-300 hover:text-white"
+                onClick={onClose}
+                aria-label="Close sidebar"
+              >
+                <FiX className="mx-auto" />
+              </button>
             </div>
 
             {/* Section Title */}
-            <p className="text-xs font-semibold text-primary-400 uppercase tracking-wider mb-4 px-2">
-              Menu
+            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-3 px-2">
+              Navigation
             </p>
 
             {/* Navigation */}
-            <nav className="space-y-2 flex-1">
+            <nav className="space-y-1.5 flex-1">
               {navigation.map((item) => {
                 const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
                 return (
                   <Link
                     key={item.name}
                     href={item.href}
-                    className={`w-full group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 cursor-pointer ${
+                    onClick={onClose}
+                    className={`w-full group flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 cursor-pointer ${
                       isActive
-                        ? 'bg-white/10 border border-white/20 shadow-lg'
-                        : 'hover:bg-white/5 border border-transparent'
+                        ? 'bg-gradient-to-r from-indigo-600/70 to-cyan-600/70 border border-cyan-400/40 shadow-lg'
+                        : 'hover:bg-slate-900/90 border border-transparent'
                     }`}
                   >
                     <item.icon
-                      className={`flex-shrink-0 h-5 w-5 transition-all ${
+                      className={`flex-shrink-0 h-4.5 w-4.5 transition-all ${
                         isActive 
-                          ? `${item.color}` 
-                          : 'text-primary-300 group-hover:text-white'
+                          ? 'text-white' 
+                          : 'text-slate-400 group-hover:text-slate-100'
                       }`}
                     />
                     <span className={`text-sm font-medium flex-1 text-left transition-colors ${
                       isActive 
                         ? 'text-white' 
-                        : 'text-primary-100 group-hover:text-white'
+                        : 'text-slate-200 group-hover:text-white'
                     }`}>
                       {item.name}
                     </span>
                     {isActive && (
-                      <FiChevronRight className="h-4 w-4 text-gold-400" />
+                      <FiChevronRight className="h-4 w-4 text-white/80" />
                     )}
                   </Link>
                 )
@@ -149,32 +160,35 @@ export default function AdminSidebar({ isOpen, onClose }) {
             </nav>
 
             {/* Stats Section */}
-            <div className="mt-8 p-4 bg-white/5 border border-white/10 rounded-lg">
-              <p className="text-xs font-semibold text-primary-300 uppercase tracking-wider mb-3">
-                Quick Stats
-              </p>
+            <div className="mt-6 p-4 bg-slate-900/70 border border-slate-800 rounded-xl">
+              <div className="flex items-center gap-2 mb-3">
+                <FiBarChart2 className="text-cyan-300" size={15} />
+                <p className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                  Live Stats
+                </p>
+              </div>
               <div className="space-y-2 text-xs">
-                <div className="flex justify-between items-center">
-                  <span className="text-primary-200">Products</span>
-                  <span className="font-bold text-gold-400">{quickStats.products}</span>
+                <div className="flex justify-between items-center rounded-lg px-2.5 py-2 bg-slate-800/70">
+                  <span className="text-slate-300">Products</span>
+                  <span className="font-bold text-cyan-300">{quickStats.products}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-primary-200">Orders</span>
-                  <span className="font-bold text-gold-400">{quickStats.orders}</span>
+                <div className="flex justify-between items-center rounded-lg px-2.5 py-2 bg-slate-800/70">
+                  <span className="text-slate-300">Orders</span>
+                  <span className="font-bold text-cyan-300">{quickStats.orders}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-primary-200">Customers</span>
-                  <span className="font-bold text-gold-400">{quickStats.customers}</span>
+                <div className="flex justify-between items-center rounded-lg px-2.5 py-2 bg-slate-800/70">
+                  <span className="text-slate-300">Customers</span>
+                  <span className="font-bold text-cyan-300">{quickStats.customers}</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* User Profile Footer */}
-          <div className="border-t border-primary-700 p-4 mx-4 bg-white/5 rounded-lg">
+          <div className="border-t border-slate-800 p-4 mx-4 mb-4 bg-slate-900 rounded-xl">
             <div className="flex items-center gap-3">
               <div className="flex-shrink-0">
-                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center font-bold text-white shadow-lg">
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center font-bold text-white shadow-lg">
                   {adminUser?.name?.charAt(0)?.toUpperCase() || 'A'}
                 </div>
               </div>
@@ -182,16 +196,16 @@ export default function AdminSidebar({ isOpen, onClose }) {
                 <p className="text-sm font-semibold text-white truncate">
                   {adminUser?.name || 'Admin'}
                 </p>
-                <p className="text-xs text-primary-300 truncate">Admin User</p>
+                <p className="text-xs text-slate-400 truncate">{adminUser?.email || 'Admin user'}</p>
               </div>
             </div>
             <button
               onClick={handleLogout}
-              className="w-full mt-4 flex items-center gap-2 px-3 py-2 text-sm text-red-300 hover:text-red-200 hover:bg-red-500/10 rounded-lg transition-all duration-200"
+              className="w-full mt-3 flex items-center justify-center gap-2 px-3 py-2.5 text-sm text-rose-300 hover:text-rose-200 hover:bg-rose-500/10 rounded-lg transition-all duration-200 border border-rose-500/20"
               title="Logout"
             >
-              <FiLogOut size={16} />
-              <span>Logout</span>
+              <FiLogOut size={15} />
+              <span>Sign out</span>
             </button>
           </div>
         </div>

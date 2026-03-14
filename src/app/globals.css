@@ -257,3 +257,31 @@
     animation: fadeIn 0.8s ease-out;
   }
 }
+
+/* Admin shell (separate visual language from storefront UI) */
+.admin-shell {
+  background:
+    radial-gradient(1200px 500px at 10% -5%, rgba(34, 211, 238, 0.08), transparent 45%),
+    radial-gradient(900px 450px at 95% 0%, rgba(99, 102, 241, 0.08), transparent 40%),
+    #f8fafc;
+}
+
+.admin-page-frame {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.9) 100%);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 20px;
+  box-shadow: 0 18px 40px -28px rgba(15, 23, 42, 0.35);
+  padding: 16px;
+}
+
+@media (min-width: 640px) {
+  .admin-page-frame {
+    padding: 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .admin-page-frame {
+    padding: 24px;
+  }
+}
