@@ -1,13 +1,12 @@
 'use client'
 
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import ProductCard from '@/components/ProductCard'
 import { isProductPubliclyAvailable } from '@/lib/productAvailability'
-import { FiFilter, FiX, FiChevronDown, FiLoader } from 'react-icons/fi'
+import { FiFilter, FiX, FiLoader, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 
 // Keep subcategory names for display purposes
 const subcategoryNames = {
@@ -38,17 +37,6 @@ const subcategoryNames = {
   gown: 'Gown'
 }
 
-const audienceGroups = {
-  adults: [
-    { id: 'men', label: 'Men Wears' },
-    { id: 'women', label: 'Women Wears' }
-  ],
-  kids: [
-    { id: 'boys', label: 'Boys Wears' },
-    { id: 'girls', label: 'Girls Wears' }
-  ]
-}
-
 const allAudienceOptions = [
   { id: 'men', label: 'Men Wears' },
   { id: 'women', label: 'Women Wears' },
@@ -72,7 +60,6 @@ const traditionalGroups = [
 ]
 
 export default function Shop() {
-  const router = useRouter()
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState('all')
@@ -81,11 +68,8 @@ export default function Shop() {
   const [sortBy, setSortBy] = useState('featured')
   const [priceRange, setPriceRange] = useState([0, 250])
   const [showFilters, setShowFilters] = useState(false)
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
-  const [showTraditionalDropdown, setShowTraditionalDropdown] = useState(false)
   const [selectedTraditionalGroup, setSelectedTraditionalGroup] = useState('none')
-  const dropdownRef = useRef(null)
-  const traditionalDropdownRef = useRef(null)
+  const categoryScrollRef = useRef(null)
 
   const maxAvailablePrice = useMemo(() => {
     const prices = products
@@ -125,25 +109,6 @@ export default function Shop() {
     }
 
     fetchProducts()
-  }, [])
-
-  const availableAudienceOptions = useMemo(() => {
-    if (selectedCategory === 'adults') return audienceGroups.adults
-    if (selectedCategory === 'kids') return audienceGroups.kids
-    return allAudienceOptions
-  }, [selectedCategory])
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowCategoryDropdown(false)
-      }
-      if (traditionalDropdownRef.current && !traditionalDropdownRef.current.contains(event.target)) {
-        setShowTraditionalDropdown(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   const availableSubcategories = useMemo(() => {
@@ -210,8 +175,6 @@ export default function Shop() {
     return filtered
   }, [products, selectedCategory, selectedAudience, selectedSubcategory, selectedTraditionalGroup, sortBy, priceRange])
 
-  const activeFiltersCount = [selectedCategory, selectedAudience, selectedSubcategory].filter(v => v !== 'all').length + (selectedTraditionalGroup !== 'none' ? 1 : 0)
-
   const handleCategoryChange = (categoryId) => {
     setSelectedCategory(categoryId)
     setSelectedAudience('all')
@@ -249,6 +212,92 @@ export default function Shop() {
     setPriceRange([0, maxAvailablePrice])
   }
 
+  const scrollCategoryMenu = (direction) => {
+    if (!categoryScrollRef.current) return
+    const delta = direction === 'left' ? -320 : 320
+    categoryScrollRef.current.scrollBy({ left: delta, behavior: 'smooth' })
+  }
+
+  const applyQuickCategory = (id) => {
+    setSelectedSubcategory('all')
+    if (id === 'all') {
+      setSelectedCategory('all')
+      setSelectedAudience('all')
+      setSelectedTraditionalGroup('none')
+      return
+    }
+    if (id === 'men') {
+      setSelectedCategory('adults')
+      setSelectedAudience('men')
+      setSelectedTraditionalGroup('none')
+      return
+    }
+    if (id === 'women') {
+      setSelectedCategory('adults')
+      setSelectedAudience('women')
+      setSelectedTraditionalGroup('none')
+      return
+    }
+    if (id === 'boys') {
+      setSelectedCategory('kids')
+      setSelectedAudience('boys')
+      setSelectedTraditionalGroup('none')
+      return
+    }
+    if (id === 'girls') {
+      setSelectedCategory('kids')
+      setSelectedAudience('girls')
+      setSelectedTraditionalGroup('none')
+      return
+    }
+    if (id === 'all-traditional') {
+      handleTraditionalGroupChange('all-traditional')
+      return
+    }
+    if (id === 'traditional-men') {
+      handleTraditionalGroupChange('adults-men')
+      return
+    }
+    if (id === 'traditional-women') {
+      handleTraditionalGroupChange('adults-women')
+      return
+    }
+    if (id === 'traditional-boys') {
+      handleTraditionalGroupChange('kids-boys')
+      return
+    }
+    if (id === 'traditional-girls') {
+      handleTraditionalGroupChange('kids-girls')
+    }
+  }
+
+  const isQuickCategoryActive = (id) => {
+    if (id === 'all') return selectedCategory === 'all' && selectedAudience === 'all' && selectedTraditionalGroup === 'none'
+    if (id === 'men') return selectedCategory === 'adults' && selectedAudience === 'men' && selectedTraditionalGroup === 'none'
+    if (id === 'women') return selectedCategory === 'adults' && selectedAudience === 'women' && selectedTraditionalGroup === 'none'
+    if (id === 'boys') return selectedCategory === 'kids' && selectedAudience === 'boys' && selectedTraditionalGroup === 'none'
+    if (id === 'girls') return selectedCategory === 'kids' && selectedAudience === 'girls' && selectedTraditionalGroup === 'none'
+    if (id === 'all-traditional') return selectedTraditionalGroup === 'all-traditional'
+    if (id === 'traditional-men') return selectedTraditionalGroup === 'adults-men'
+    if (id === 'traditional-women') return selectedTraditionalGroup === 'adults-women'
+    if (id === 'traditional-boys') return selectedTraditionalGroup === 'kids-boys'
+    if (id === 'traditional-girls') return selectedTraditionalGroup === 'kids-girls'
+    return false
+  }
+
+  const quickCategoryItems = [
+    { id: 'all', label: 'All Products' },
+    { id: 'men', label: "Men's Clothing" },
+    { id: 'women', label: "Women's Clothing" },
+    { id: 'boys', label: "Boys' Fashion" },
+    { id: 'girls', label: "Girls' Fashion" },
+    { id: 'all-traditional', label: 'All Traditional Wears' },
+    { id: 'traditional-men', label: 'Traditional: Men' },
+    { id: 'traditional-women', label: 'Traditional: Women' },
+    { id: 'traditional-boys', label: 'Traditional: Boys' },
+    { id: 'traditional-girls', label: 'Traditional: Girls' },
+  ]
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
@@ -270,276 +319,50 @@ export default function Shop() {
         </div>
       </section>
 
-      {/* Category Quick Switch - Dropdown Menu */}
+      {/* Category Quick Switch - Scrollable Chip Menu */}
       <section className="bg-white border-b">
-        <div className="container-custom py-6">
-          <div className="flex flex-col lg:flex-row gap-4 max-w-4xl mx-auto" ref={dropdownRef}>
-            <div className="flex-1 relative">
-              <button
-                onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                className="w-full flex items-center justify-between bg-white border-2 border-primary-600 rounded-xl px-4 py-3 text-left hover:bg-primary-50 transition-colors"
-              >
-                <div>
-                  <p className="font-bold text-primary-600">
-                    {selectedCategory === 'all' ? 'All Products' : selectedCategory === 'adults' ? 'Adults' : 'Kids'}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    {selectedCategory === 'all' && 'Full catalog view'}
-                    {selectedCategory === 'adults' && 'Men & Women wears'}
-                    {selectedCategory === 'kids' && 'Boys & Girls wears'}
-                  </p>
-                </div>
-                <FiChevronDown
-                  size={20}
-                  className={`text-primary-600 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`}
-                />
-              </button>
+        <div className="container-custom py-4">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => scrollCategoryMenu('left')}
+              className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-white border border-gray-200 shadow-md items-center justify-center text-gray-700 hover:bg-gray-50"
+              aria-label="Scroll categories left"
+            >
+              <FiChevronLeft size={20} />
+            </button>
 
-            {showCategoryDropdown && (
-              <div className="absolute mt-2 w-80 lg:w-[32rem] bg-white border border-gray-200 rounded-xl shadow-lg z-40">
-                {/* All Products Option */}
-                <button
-                  onClick={() => {
-                    setSelectedCategory('all')
-                    setSelectedAudience('all')
-                    setSelectedSubcategory('all')
-                    setSelectedTraditionalGroup('none')
-                    setShowCategoryDropdown(false)
-                  }}
-                  className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 transition-colors"
-                >
-                  <p className="font-semibold text-gray-900">All Products</p>
-                  <p className="text-sm text-gray-500">Full catalog view</p>
-                </button>
-
-                {/* Mobile Menu (unchanged) */}
-                <div className="lg:hidden">
-                  <div className="border-b border-gray-100">
-                    <p className="w-full text-left px-4 py-2 font-semibold text-primary-600 bg-primary-50">
-                      Adults
-                    </p>
-                    <div className="bg-gray-50 px-4 py-2 space-y-2">
-                      <button
-                        onClick={() => {
-                          router.push('/shop/men')
-                          setShowCategoryDropdown(false)
-                        }}
-                        className="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors"
-                      >
-                        Men
-                      </button>
-                      <button
-                        onClick={() => {
-                          router.push('/shop/women')
-                          setShowCategoryDropdown(false)
-                        }}
-                        className="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors"
-                      >
-                        Women
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="w-full text-left px-4 py-2 font-semibold text-primary-600 bg-primary-50">
-                      Kids
-                    </p>
-                    <div className="bg-gray-50 px-4 py-2 space-y-2">
-                      <button
-                        onClick={() => {
-                          router.push('/shop/boys')
-                          setShowCategoryDropdown(false)
-                        }}
-                        className="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors"
-                      >
-                        Boys
-                      </button>
-                      <button
-                        onClick={() => {
-                          router.push('/shop/girls')
-                          setShowCategoryDropdown(false)
-                        }}
-                        className="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors"
-                      >
-                        Girls
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Desktop Menu */}
-                <div className="hidden lg:block p-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => {
-                        router.push('/shop/men')
-                        setShowCategoryDropdown(false)
-                      }}
-                      className="w-full text-left px-4 py-3 rounded-lg text-sm font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors"
-                    >
-                      Men
-                    </button>
-                    <button
-                      onClick={() => {
-                        router.push('/shop/women')
-                        setShowCategoryDropdown(false)
-                      }}
-                      className="w-full text-left px-4 py-3 rounded-lg text-sm font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors"
-                    >
-                      Women
-                    </button>
-                    <button
-                      onClick={() => {
-                        router.push('/shop/boys')
-                        setShowCategoryDropdown(false)
-                      }}
-                      className="w-full text-left px-4 py-3 rounded-lg text-sm font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors"
-                    >
-                      Boys
-                    </button>
-                    <button
-                      onClick={() => {
-                        router.push('/shop/girls')
-                        setShowCategoryDropdown(false)
-                      }}
-                      className="w-full text-left px-4 py-3 rounded-lg text-sm font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors"
-                    >
-                      Girls
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-            </div>
-
-            <div className="flex-1 relative" ref={traditionalDropdownRef}>
-              <button
-                onClick={() => setShowTraditionalDropdown(!showTraditionalDropdown)}
-                className="w-full flex items-center justify-between bg-white border-2 border-primary-600 rounded-xl px-4 py-3 text-left hover:bg-primary-50 transition-colors"
-              >
-                <div>
-                  <p className="font-bold text-primary-600">Traditional Wears</p>
-                  <p className="text-sm text-gray-500">Ethnic & cultural collection</p>
-                </div>
-                <FiChevronDown
-                  size={20}
-                  className={`text-primary-600 transition-transform ${showTraditionalDropdown ? 'rotate-180' : ''}`}
-                />
-              </button>
-
-              {showTraditionalDropdown && (
-                <div className="absolute mt-2 w-80 lg:w-[32rem] bg-white border border-gray-200 rounded-xl shadow-lg z-40">
-                  {/* All Traditional Option */}
+            <div
+              ref={categoryScrollRef}
+              className="flex items-center gap-3 overflow-x-auto no-scrollbar px-1 md:px-14 py-1"
+            >
+              {quickCategoryItems.map((item) => {
+                const active = isQuickCategoryActive(item.id)
+                return (
                   <button
-                    onClick={() => {
-                      handleTraditionalGroupChange('all-traditional')
-                      setShowTraditionalDropdown(false)
-                    }}
-                    className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 transition-colors"
+                    key={item.id}
+                    type="button"
+                    onClick={() => applyQuickCategory(item.id)}
+                    className={`shrink-0 px-5 py-3 rounded-full border text-left font-semibold transition-all ${
+                      active
+                        ? 'bg-primary-600 border-primary-600 text-white shadow-md'
+                        : 'bg-white border-gray-300 text-gray-800 hover:border-primary-500'
+                    }`}
                   >
-                    <p className="font-semibold text-gray-900">All Traditional Wears</p>
-                    <p className="text-sm text-gray-500">Full ethnic collection view</p>
+                    {item.label}
                   </button>
-
-                  {/* Mobile Menu */}
-                  <div className="lg:hidden">
-                    <div className="border-b border-gray-100">
-                      <p className="w-full text-left px-4 py-2 font-semibold text-primary-600 bg-primary-50">
-                        Adults
-                      </p>
-                      <div className="bg-gray-50 px-4 py-2 space-y-2">
-                        <button
-                          onClick={() => {
-                            handleTraditionalGroupChange('adults-men')
-                            setShowTraditionalDropdown(false)
-                          }}
-                          className="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors"
-                        >
-                          Men
-                        </button>
-                        <button
-                          onClick={() => {
-                            handleTraditionalGroupChange('adults-women')
-                            setShowTraditionalDropdown(false)
-                          }}
-                          className="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors"
-                        >
-                          Women
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <p className="w-full text-left px-4 py-2 font-semibold text-primary-600 bg-primary-50">
-                        Kids
-                      </p>
-                      <div className="bg-gray-50 px-4 py-2 space-y-2">
-                        <button
-                          onClick={() => {
-                            handleTraditionalGroupChange('kids-boys')
-                            setShowTraditionalDropdown(false)
-                          }}
-                          className="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors"
-                        >
-                          Boys
-                        </button>
-                        <button
-                          onClick={() => {
-                            handleTraditionalGroupChange('kids-girls')
-                            setShowTraditionalDropdown(false)
-                          }}
-                          className="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors"
-                        >
-                          Girls
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Desktop Menu */}
-                  <div className="hidden lg:block p-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        onClick={() => {
-                          handleTraditionalGroupChange('adults-men')
-                          setShowTraditionalDropdown(false)
-                        }}
-                        className="w-full text-left px-4 py-3 rounded-lg text-sm font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors"
-                      >
-                        Adults: Men
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleTraditionalGroupChange('adults-women')
-                          setShowTraditionalDropdown(false)
-                        }}
-                        className="w-full text-left px-4 py-3 rounded-lg text-sm font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors"
-                      >
-                        Adults: Women
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleTraditionalGroupChange('kids-boys')
-                          setShowTraditionalDropdown(false)
-                        }}
-                        className="w-full text-left px-4 py-3 rounded-lg text-sm font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors"
-                      >
-                        Kids: Boys
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleTraditionalGroupChange('kids-girls')
-                          setShowTraditionalDropdown(false)
-                        }}
-                        className="w-full text-left px-4 py-3 rounded-lg text-sm font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors"
-                      >
-                        Kids: Girls
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+                )
+              })}
             </div>
+
+            <button
+              type="button"
+              onClick={() => scrollCategoryMenu('right')}
+              className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-white border border-gray-200 shadow-md items-center justify-center text-gray-700 hover:bg-gray-50"
+              aria-label="Scroll categories right"
+            >
+              <FiChevronRight size={20} />
+            </button>
           </div>
         </div>
       </section>
