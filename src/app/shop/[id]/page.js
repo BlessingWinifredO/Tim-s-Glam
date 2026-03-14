@@ -8,7 +8,7 @@ import { doc, getDoc, collection, getDocs, query, where, limit } from 'firebase/
 import { db } from '@/lib/firebase'
 import { useCart } from '@/context/CartContext'
 import { getAvailableStock, isProductPubliclyAvailable, isProductSold } from '@/lib/productAvailability'
-import { FiShoppingCart, FiHeart, FiCheck, FiArrowLeft, FiTruck, FiRefreshCw, FiShield, FiLoader } from 'react-icons/fi'
+import { FiShoppingCart, FiHeart, FiCheck, FiArrowLeft, FiTruck, FiShield, FiLoader } from 'react-icons/fi'
 import ProductCard from '@/components/ProductCard'
 
 export default function ProductDetail() {
@@ -360,10 +360,10 @@ export default function ProductDetail() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3 text-gray-600">
-                  <FiRefreshCw size={24} className="text-gold-500" />
+                  <FiHeart size={24} className="text-gold-500" />
                   <div>
-                    <p className="font-semibold text-gray-800">The GLAM Exchange Promise</p>
-                    <p className="text-sm">Wrong size? Swap it stress-free within 7 days</p>
+                    <p className="font-semibold text-gray-800">Dressed With Purpose</p>
+                    <p className="text-sm">Fashion that celebrates every body, every story</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 text-gray-600">

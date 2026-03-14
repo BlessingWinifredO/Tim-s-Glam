@@ -373,10 +373,10 @@ export default function Home() {
             </div>
             <div className="text-center transform hover:scale-105 transition-transform">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gold-500 text-white rounded-full mb-4 shadow-lg">
-                <FiRefreshCw size={28} />
+                <FiHeart size={28} />
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-white">The GLAM Exchange Promise</h3>
-              <p className="text-gray-200">Wrong size? Swap it stress-free within 7 days</p>
+              <h3 className="text-xl font-semibold mb-2 text-white">Dressed With Purpose</h3>
+              <p className="text-gray-200">Fashion that celebrates every body, every story</p>
             </div>
             <div className="text-center transform hover:scale-105 transition-transform">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gold-500 text-white rounded-full mb-4 shadow-lg">
