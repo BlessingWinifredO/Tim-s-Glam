@@ -1,0 +1,82 @@
+TIM'S GLAM - LEAN PRODUCTION BUDGET (2026)
+Owner: Solo founder (no team)
+Target annual budget: USD 95 - 185
+
+==================================================
+STACK YOU CHOSE
+==================================================
+1. Domain registrar: Namecheap
+2. Hosting platform: Vercel (Hobby)
+3. Transactional email sender: Resend (Free tier)
+4. Business mailbox: Google Workspace (1 user)
+
+==================================================
+ANNUAL COST BREAKDOWN (USD)
+==================================================
+A) Domain (Namecheap)
+- Typical first-year range: 10 - 20 / year
+- Depends on extension and promo pricing
+
+B) Hosting (Vercel Hobby)
+- 0 / year
+
+C) Transactional Emails (Resend Free)
+- 0 / year
+- Upgrade only if volume exceeds free limits
+
+D) Business Mailbox (Google Workspace, 1 user)
+- Starter-equivalent annual range: 72 - 144 / year
+- Depends on region/tax and exact Workspace plan
+
+--------------------------------------------------
+TOTAL ANNUAL ESTIMATE
+--------------------------------------------------
+Low end:
+- 10 + 0 + 0 + 72 = 82 / year
+
+Practical client budget target:
+- 95 - 185 / year
+
+Recommended planning buffer:
+- Keep 15 - 30 extra for domain renewal/tax variance
+
+==================================================
+MONTHLY EQUIVALENT (APPROX)
+==================================================
+- Low end: 7 / month
+- Typical lean range: 8 - 15 / month
+
+==================================================
+BEST FIT FOR YOUR BUDGET
+==================================================
+To stay inside budget confidently:
+1. Buy one domain at Namecheap
+2. Keep Vercel on Hobby
+3. Keep Resend on Free tier initially
+4. Use one Google Workspace mailbox only
+5. Do not add team seats until revenue justifies upgrade
+
+==================================================
+WHEN COST WILL INCREASE
+==================================================
+1. Vercel Pro upgrade
+2. Resend paid volume
+3. Additional Google Workspace users
+4. Premium domain renewals or add-ons
+
+==================================================
+EXECUTION ORDER (LOW RISK)
+==================================================
+1. Buy domain on Namecheap
+2. Connect domain to Vercel project
+3. Configure Google Workspace mailbox
+4. Configure Resend sending domain and API/SMTP
+5. Add env values in Vercel and local app
+6. Test email flows from admin notifications and auth routes
+
+==================================================
+NOTES
+==================================================
+- This budget excludes optional premium tools (monitoring, paid analytics, paid support).
+- This is optimized for solo operation and early production launch.
+- Reassess costs only after traffic and email volume growth.

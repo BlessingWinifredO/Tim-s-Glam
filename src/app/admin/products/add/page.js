@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useAdminAuth } from '@/context/AdminAuthContext'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore'
@@ -33,6 +34,7 @@ const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'One Size']
 
 export default function AddProductPage() {
   const router = useRouter()
+  const { adminUser } = useAdminAuth()
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
@@ -50,10 +52,12 @@ export default function AddProductPage() {
     audience: 'men',
     subcategory: 'tshirt',
     sizes: [],
+    colors: [],
     stock: '',
     sku: '',
     status: 'Active',
   })
+  const [colorInput, setColorInput] = useState('')
 
   // Handle image upload to Cloudinary
   const handleImageUpload = async (e) => {
@@ -89,6 +93,10 @@ export default function AddProductPage() {
 
       const response = await fetch('/api/upload', {
         method: 'POST',
+        headers: {
+          'x-admin-session': 'true',
+          'x-admin-email': adminUser?.email || '',
+        },
         body: formDataCloud,
       })
 
@@ -219,6 +227,7 @@ export default function AddProductPage() {
         audience: formData.audience,
         subcategory: formData.subcategory,
         sizes: formData.sizes,
+        colors: formData.colors,
         stock: parseInt(formData.stock),
         sku: formData.sku || `SKU-${Date.now()}`,
         image: imageUrl,
@@ -594,6 +603,51 @@ export default function AddProductPage() {
           {formData.sizes.length === 0 && (
             <p className="text-sm text-orange-600 mt-2">Select at least one size</p>
           )}
+        </div>
+
+        {/* Colors */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Colors <span className="text-gray-400 font-normal">(optional — press Enter or comma to add)</span>
+          </label>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {formData.colors.map((color) => (
+              <span key={color} className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary-50 border border-primary-200 text-primary-700 text-sm">
+                {color}
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, colors: prev.colors.filter(c => c !== color) }))}
+                  className="hover:text-red-500 ml-0.5"
+                >
+                  <FiX size={12} />
+                </button>
+              </span>
+            ))}
+          </div>
+          <input
+            type="text"
+            value={colorInput}
+            onChange={(e) => setColorInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault()
+                const val = colorInput.trim().replace(/,$/, '')
+                if (val && !formData.colors.includes(val)) {
+                  setFormData(prev => ({ ...prev, colors: [...prev.colors, val] }))
+                }
+                setColorInput('')
+              }
+            }}
+            onBlur={() => {
+              const val = colorInput.trim().replace(/,$/, '')
+              if (val && !formData.colors.includes(val)) {
+                setFormData(prev => ({ ...prev, colors: [...prev.colors, val] }))
+              }
+              setColorInput('')
+            }}
+            placeholder="e.g. Black, White, Red..."
+            className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
+          />
         </div>
 
         {/* Form Actions */}

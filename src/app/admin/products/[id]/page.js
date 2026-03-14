@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useAdminAuth } from '@/context/AdminAuthContext'
 import Image from 'next/image'
 import { useRouter, useParams } from 'next/navigation'
 import { doc, getDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
@@ -35,6 +36,7 @@ const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'One Size']
 export default function EditProductPage() {
   const router = useRouter()
   const params = useParams()
+  const { adminUser } = useAdminAuth()
   const productId = params.id
 
   const [loading, setLoading] = useState(true)
@@ -48,6 +50,7 @@ export default function EditProductPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [selectedTraditionalGroup, setSelectedTraditionalGroup] = useState('none')
   const isTraditionalMode = selectedTraditionalGroup !== 'none'
+  const [colorInput, setColorInput] = useState('')
 
   const [formData, setFormData] = useState({
     name: '',
@@ -57,6 +60,7 @@ export default function EditProductPage() {
     audience: 'men',
     subcategory: 'tshirt',
     sizes: [],
+    colors: [],
     stock: '',
     sku: '',
     status: 'Active',
@@ -84,6 +88,7 @@ export default function EditProductPage() {
           audience: data.audience || 'men',
           subcategory: data.subcategory || 'tshirt',
           sizes: data.sizes || [],
+          colors: data.colors || [],
           stock: data.stock || '',
           sku: data.sku || '',
           status: data.status || 'Active',
@@ -136,6 +141,10 @@ export default function EditProductPage() {
 
       const response = await fetch('/api/upload', {
         method: 'POST',
+        headers: {
+          'x-admin-session': 'true',
+          'x-admin-email': adminUser?.email || '',
+        },
         body: formDataCloud,
       })
 
@@ -251,6 +260,7 @@ export default function EditProductPage() {
         audience: formData.audience,
         subcategory: formData.subcategory,
         sizes: formData.sizes,
+        colors: formData.colors,
         stock: parseInt(formData.stock),
         sku: formData.sku,
         image: imageUrl,
@@ -570,6 +580,49 @@ export default function EditProductPage() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Colors Section */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Colors <span className="text-gray-400 text-sm font-normal">(optional)</span></h2>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {(formData.colors || []).map((color) => (
+                  <span key={color} className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary-50 border border-primary-200 text-primary-700 text-sm">
+                    {color}
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, colors: prev.colors.filter(c => c !== color) }))}
+                      className="hover:text-red-500 ml-0.5"
+                    >
+                      <FiX size={12} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <input
+                type="text"
+                value={colorInput}
+                onChange={(e) => setColorInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ',') {
+                    e.preventDefault()
+                    const val = colorInput.trim().replace(/,$/, '')
+                    if (val && !(formData.colors || []).includes(val)) {
+                      setFormData(prev => ({ ...prev, colors: [...(prev.colors || []), val] }))
+                    }
+                    setColorInput('')
+                  }
+                }}
+                onBlur={() => {
+                  const val = colorInput.trim().replace(/,$/, '')
+                  if (val && !(formData.colors || []).includes(val)) {
+                    setFormData(prev => ({ ...prev, colors: [...(prev.colors || []), val] }))
+                  }
+                  setColorInput('')
+                }}
+                placeholder="e.g. Black, White, Red — press Enter to add"
+                className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
+              />
             </div>
           </div>
 

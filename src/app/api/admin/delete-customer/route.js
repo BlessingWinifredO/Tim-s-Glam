@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin'
 
-const FALLBACK_API_KEY = 'AIzaSyDpY--HmY6zqgRvrtHhUA69L2_n3vHWWDM'
-
 function getAllowedAdminEmails() {
   const raw = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'winniewizzyb@gmail.com,admin@tims-glam.com'
   return raw
@@ -23,7 +21,10 @@ async function validateAdminCredentials(adminEmail, adminPassword) {
     throw new Error('Admin password is required.')
   }
 
-  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || FALLBACK_API_KEY
+  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY
+  if (!apiKey) {
+    throw new Error('Firebase API key not configured. Set NEXT_PUBLIC_FIREBASE_API_KEY.')
+  }
   const response = await fetch(
     `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
     {

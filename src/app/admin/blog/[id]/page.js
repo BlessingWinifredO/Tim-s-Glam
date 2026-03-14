@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useAdminAuth } from '@/context/AdminAuthContext'
 import Image from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
 import { deleteDoc, doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore'
@@ -65,6 +66,7 @@ function renderPreviewContent(content) {
 export default function EditBlogPostPage() {
   const router = useRouter()
   const params = useParams()
+  const { adminUser } = useAdminAuth()
   const postId = params.id
 
   const [loading, setLoading] = useState(true)
@@ -157,6 +159,10 @@ export default function EditBlogPostPage() {
 
       const response = await fetch('/api/upload', {
         method: 'POST',
+        headers: {
+          'x-admin-session': 'true',
+          'x-admin-email': adminUser?.email || '',
+        },
         body: uploadData,
       })
 

@@ -74,8 +74,9 @@ export default function Cart() {
                         </button>
                         <span className="px-3 py-1 text-sm font-semibold">{item.quantity}</span>
                         <button
-                          onClick={() => updateQuantity(item.id, item.selectedSize, item.selectedColor, item.quantity + 1)}
+                          onClick={() => updateQuantity(item.id, item.selectedSize, item.selectedColor, Math.min(item.quantity + 1, item.stock || 99))}
                           className="p-1 hover:bg-gray-100 transition-colors"
+                          disabled={item.quantity >= (item.stock || 99)}
                         >
                           <FiPlus size={14} />
                         </button>

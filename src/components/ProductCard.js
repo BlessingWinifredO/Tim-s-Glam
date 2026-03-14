@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { FiShoppingCart, FiHeart, FiEye } from 'react-icons/fi'
+import { FiShoppingCart, FiHeart } from 'react-icons/fi'
 import { useCart } from '@/context/CartContext'
 import { useWishlist } from '@/context/WishlistContext'
 
@@ -83,12 +83,6 @@ export default function ProductCard({ product }) {
               title={inWishlist ? 'In Wishlist' : 'Add to Wishlist'}
             >
               <FiHeart size={20} className={inWishlist ? 'fill-current' : ''} />
-            </button>
-            <button
-              className="bg-white text-primary-500 p-3 rounded-full hover:bg-gold-500 hover:text-white transition-colors"
-              title="Quick View"
-            >
-              <FiEye size={20} />
             </button>
           </div>
         </div>

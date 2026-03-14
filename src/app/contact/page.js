@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import Image from 'next/image'
 import Link from 'next/link'
 import { FiMail, FiPhone, FiMapPin, FiClock, FiFacebook, FiInstagram, FiTwitter, FiSend, FiMessageCircle, FiHeadphones, FiPackage, FiShield, FiHeart, FiArrowRight, FiUser, FiChevronDown } from 'react-icons/fi'
@@ -26,22 +28,41 @@ export default function Contact() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsSubmitting(true)
-    
-    // Simulate form submission
-    setTimeout(() => {
-      setSubmitStatus('success')
-      setIsSubmitting(false)
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        subject: '',
-        message: ''
+
+    try {
+      // Save message to Firestore
+      await addDoc(collection(db, 'contactMessages'), {
+        name: formData.name.trim(),
+        email: formData.email.trim().toLowerCase(),
+        phone: formData.phone.trim(),
+        subject: formData.subject.trim(),
+        message: formData.message.trim(),
+        status: 'unread',
+        createdAt: serverTimestamp(),
       })
-      
-      // Reset status after 5 seconds
+
+      // Notify admin via email (fire-and-forget — don't block success on email)
+      fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'customEmail',
+          to: process.env.NEXT_PUBLIC_ADMIN_EMAIL?.split(',')[0] || '',
+          subject: `New Contact Message: ${formData.subject.trim()}`,
+          message: `From: ${formData.name.trim()} <${formData.email.trim()}>\nPhone: ${formData.phone.trim() || 'N/A'}\n\n${formData.message.trim()}`,
+        }),
+      }).catch(() => {})
+
+      setSubmitStatus('success')
+      setFormData({ name: '', email: '', phone: '', subject: '', message: '' })
       setTimeout(() => setSubmitStatus(null), 5000)
-    }, 1500)
+    } catch (err) {
+      console.error('Contact form error:', err)
+      setSubmitStatus('error')
+      setTimeout(() => setSubmitStatus(null), 5000)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const contactMethods = [

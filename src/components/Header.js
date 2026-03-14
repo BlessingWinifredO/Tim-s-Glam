@@ -401,7 +401,7 @@ export default function Header() {
                                 <p className="font-semibold text-gray-900">{product.name}</p>
                                 <p className="text-sm text-gray-500 capitalize">{product.category} • {product.subcategory}</p>
                               </div>
-                              <p className="font-bold text-primary-600">${product.price.toFixed(2)}</p>
+                              <p className="font-bold text-primary-600">₦{product.price.toLocaleString()}</p>
                             </div>
                           </Link>
                         ))}

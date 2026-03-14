@@ -107,7 +107,7 @@ export default function WishlistPage() {
                   </Link>
 
                   <p className="text-base md:text-lg font-bold text-primary-600 mb-2 md:mb-3">
-                    ${product.price.toFixed(2)}
+                    ₦{product.price.toLocaleString()}
                   </p>
 
                   {/* Colors */}

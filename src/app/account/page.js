@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { FiMail, FiLock, FiUser, FiArrowRight, FiEye, FiEyeOff, FiLogOut, FiShield } from 'react-icons/fi'
+import { FiMail, FiLock, FiUser, FiArrowRight, FiEye, FiEyeOff, FiLogOut, FiShield, FiPackage } from 'react-icons/fi'
+import { collection, query, where, orderBy, getDocs } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import { FcGoogle } from 'react-icons/fc'
 import { useAuth } from '@/context/AuthContext'
 
@@ -19,6 +21,32 @@ export default function AccountPage() {
     requestVerificationForExistingUser,
     logout,
   } = useAuth()
+
+  const [orders, setOrders] = useState([])
+  const [ordersLoading, setOrdersLoading] = useState(false)
+
+  const loadOrders = useCallback(async (email) => {
+    if (!email) return
+    setOrdersLoading(true)
+    try {
+      const q = query(
+        collection(db, 'orders'),
+        where('customerEmail', '==', email.toLowerCase()),
+        orderBy('createdAt', 'desc')
+      )
+      const snap = await getDocs(q)
+      setOrders(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+    } catch {
+      setOrders([])
+    } finally {
+      setOrdersLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (user?.email) loadOrders(user.email)
+  }, [user, loadOrders])
+
   const [mode, setMode] = useState('signin')
   const [formData, setFormData] = useState({
     fullName: '',
@@ -116,12 +144,45 @@ export default function AccountPage() {
                 </div>
 
                 <div className="p-5 rounded-xl border border-gray-100 bg-white">
-                  <h2 className="font-semibold text-gray-900 mb-2">Activity</h2>
-                  <p className="text-sm text-gray-600">Order history and saved activity will appear here as you use the platform.</p>
-                  <Link href="/shop" className="inline-flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 font-semibold mt-3">
-                    Continue Shopping
-                    <FiArrowRight size={14} />
-                  </Link>
+                  <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <FiPackage size={16} className="text-primary-600" />
+                    Order History
+                  </h2>
+                  {ordersLoading ? (
+                    <p className="text-sm text-gray-500">Loading orders…</p>
+                  ) : orders.length === 0 ? (
+                    <>
+                      <p className="text-sm text-gray-500">No orders yet.</p>
+                      <Link href="/shop" className="inline-flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 font-semibold mt-3">
+                        Start Shopping <FiArrowRight size={14} />
+                      </Link>
+                    </>
+                  ) : (
+                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                      {orders.map((order) => (
+                        <div key={order.id} className="flex items-center justify-between border border-gray-100 rounded-lg px-3 py-2.5 text-sm">
+                          <div>
+                            <p className="font-semibold text-gray-800">#{order.id.slice(0, 8).toUpperCase()}</p>
+                            <p className="text-gray-400 text-xs">
+                              {order.createdAt?.toDate
+                                ? new Date(order.createdAt.toDate()).toLocaleDateString()
+                                : 'Recent'}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-gray-800 font-medium">₦{Number(order.total || 0).toLocaleString()}</p>
+                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                              order.orderStatus === 'Completed' ? 'bg-green-100 text-green-700' :
+                              order.orderStatus === 'Cancelled' ? 'bg-red-100 text-red-700' :
+                              'bg-amber-100 text-amber-700'
+                            }`}>
+                              {order.orderStatus || 'Processing'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 

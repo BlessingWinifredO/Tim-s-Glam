@@ -1,0 +1,288 @@
+TIM'S GLAM - PROJECT COMPLETION PLAN
+Audited: March 14, 2026
+Stack: Next.js 14, Firebase, Tailwind, PayPal, Resend (planned)
+==================================================
+
+LEGEND
+[CRITICAL] - Security risk. Must fix before ANY public launch.
+[BLOCKER]  - Core feature broken. Customers cannot use it.
+[MEDIUM]   - Feature is incomplete. Looks unprofessional.
+[LOW]      - Cosmetic or nice-to-have.
+[EXTERNAL] - Requires account/platform setup outside of code.
+[DONE]     - Already complete. No action needed.
+
+==================================================
+SECTION 1 - SECURITY (FIX FIRST - NON-NEGOTIABLE)
+==================================================
+
+1. [CRITICAL] Firestore security rules are dangerously open
+   - Anyone on the internet can read ALL customer orders
+     (names, emails, addresses, phone numbers)
+   - Anyone can read or overwrite OTP/verification codes
+     (hijack any account login or password reset)
+   - Any logged-in customer can add, edit, or delete products
+   - Any user can read all other user profiles
+   FIX: Rewrite firestore.rules completely
+   Status: NEEDS IMMEDIATE FIX
+
+2. [CRITICAL] Firebase API key hardcoded in source code
+   - src/lib/firebase.js has real credentials as fallback values
+   - src/app/api/admin/delete-customer/route.js has API key hardcoded
+   FIX: Remove all fallback values. Use only env vars.
+   Status: NEEDS FIX
+
+3. [CRITICAL] /api/notify route has no authentication
+   - Any anonymous user can POST to it and trigger a mass
+     email blast to all newsletter subscribers
+   FIX: Add admin session check before broadcast actions
+   Status: NEEDS FIX
+
+4. [CRITICAL] /api/upload route has no authentication
+   - Anyone can upload files to your Cloudinary account
+   - Cloudinary cloud name and upload preset are hardcoded in source
+   FIX: Add auth check. Move values to env vars.
+   Status: NEEDS FIX
+
+5. [CRITICAL] Checkout sandbox mode in production
+   - If NEXT_PUBLIC_PAYPAL_CLIENT_ID is not set, test orders
+     with paymentStatus "Test Paid" will enter real Firestore
+   FIX: Add strict guard to block checkout if PayPal not configured
+   Status: NEEDS FIX
+
+==================================================
+SECTION 2 - BLOCKERS (FEATURES THAT DO NOT WORK)
+==================================================
+
+6. [BLOCKER] Email is not delivered to real users
+   - All emails (OTP codes, order confirmations, welcome emails)
+     currently go to a test inbox only (Ethereal)
+   - Users who register or reset passwords will never receive codes
+   FIX: Complete external SMTP setup with Resend (see Section 5)
+   Status: WAITING ON EXTERNAL SETUP
+
+7. [BLOCKER] Contact form does not work
+   - Form submit just runs a fake setTimeout() timer
+   - No message is ever sent or stored anywhere
+   FIX: Wire contact form to save to Firestore and send email notification
+   Status: NEEDS FIX
+
+8. [BLOCKER] Customer account page has no order history
+   - The page says "Order history will appear here" but no code
+     exists to load or display orders for the logged-in user
+   FIX: Fetch orders from Firestore by customerEmail field
+   Status: NEEDS FIX
+
+9. [BLOCKER] Colors cannot be added or edited in admin products
+   - Add Product and Edit Product forms have no color input field
+   - Products added from admin will have no colors in the storefront
+   FIX: Add color input (comma-separated or tag input) to both forms
+   Status: NEEDS FIX
+
+10. [BLOCKER] Admin settings (tax, shipping) are ignored in checkout
+    - Checkout hardcodes: tax = 8%, free shipping over $100, else $10
+    - Admin settings page lets you change these values but checkout
+      never reads them
+    FIX: Fetch appSettings at checkout load and apply the saved values
+    Status: NEEDS FIX
+
+==================================================
+SECTION 3 - INCOMPLETE FEATURES (MEDIUM PRIORITY)
+==================================================
+
+11. [MEDIUM] Footer and legal links all go to href="#"
+    - "Privacy Policy", "Terms of Service", "Shipping Info",
+      "Returns", "Size Guide", "FAQ" are all dead links
+    - No pages exist for these routes
+    FIX: Create basic pages for Privacy Policy, Terms of Service,
+         Returns Policy, Shipping Info
+    Status: NEEDS FIX
+
+12. [MEDIUM] Footer has wrong phone number and no real social links
+    - Phone: +1 (555) 123-4567 is a placeholder
+    - Facebook and Twitter links go to href="#"
+    FIX: Update with real contact details
+    Status: UPDATE WITH REAL BUSINESS DETAILS
+
+13. [MEDIUM] Admin profile page is read-only / stub
+    - Admin name always shows as "Admin" (hardcoded)
+    - No way to change admin name, email, or password from the UI
+    FIX: Add basic profile edit form
+    Status: LOW PRIORITY but looks unprofessional
+
+14. [MEDIUM] "Quick View" button on ProductCard does nothing
+    - The eye icon button exists but has no click handler
+    FIX: Either add a quick view modal or remove the button
+    Status: NEEDS FIX
+
+15. [MEDIUM] Shop filter price slider shows $ but currency is ₦
+    - Currency symbol mismatch throughout cart, checkout, and shop
+    FIX: Standardize all price displays to ₦
+    Status: NEEDS FIX
+
+16. [MEDIUM] Blog post share button does nothing
+    - Share icon in blog detail page has no click handler
+    FIX: Add basic Web Share API or copy-link functionality
+    Status: NEEDS FIX
+
+17. [MEDIUM] Cart allows quantity beyond available stock
+    - The + button in the cart sidebar has no max quantity guard
+    FIX: Add stock limit check when increasing qty in cart
+    Status: NEEDS FIX
+
+18. [MEDIUM] Promo banner "Use Code GLAM2026" is fake
+    - Header shows "Free Shipping Over ₦100,000 - Use Code GLAM2026"
+    - No promo code system exists anywhere in the app
+    FIX: Either remove the code, or implement basic promo code logic
+    Status: NEEDS DECISION
+
+19. [MEDIUM] Static stats are fake numbers
+    - "10K+ Happy Customers", "500+ Brands", "50+ Cities", "4.9 Rating"
+      appear on the homepage and about page but are hardcoded
+    FIX: Either replace with real-looking but honest copy, or derive
+         from actual Firestore data counts
+    Status: NEEDS UPDATE
+
+20. [MEDIUM] delete-customer confirmation uses window.prompt
+    - Password is typed into a plain browser prompt box (ugly + insecure)
+    FIX: Replace with a proper modal with password type input
+    Status: NEEDS FIX
+
+==================================================
+SECTION 4 - CLEANUP (LOW PRIORITY)
+==================================================
+
+21. [LOW] AdminContext.js is deprecated but still in provider tree
+    - File just has a comment saying it is deprecated
+    FIX: Remove from provider tree in layout.js and delete file
+    Status: CLEANUP
+
+22. [LOW] Wishlist not saved to Firestore
+    - Wishlist is localStorage only - lost if user clears browser
+    FIX: Sync wishlist to Firestore when user is logged in
+    Status: LOW PRIORITY
+
+23. [LOW] No real order history linking in account page
+    FIX: See item #8 above
+
+24. [LOW] framer-motion and axios dependencies installed but unused
+    FIX: Remove from package.json to reduce bundle size
+    Status: CLEANUP
+
+25. [LOW] No SEO metadata (Open Graph, Twitter card)
+    FIX: Add OG/Twitter meta tags to layout.js and key pages
+    Status: NEEDED BEFORE LAUNCH
+
+26. [LOW] No NEXT_PUBLIC_APP_URL in env vars
+    - Email links default to http://localhost:3000 in production
+      if this env var is not set in Vercel
+    FIX: Add to .env.local and Vercel environment variables
+    Status: EASY FIX
+
+==================================================
+SECTION 5 - EXTERNAL SETUP REQUIRED
+==================================================
+
+These cannot be done in code. You must complete each manually.
+
+A. [EXTERNAL] Buy domain on Namecheap
+   - Go to namecheap.com, search your desired .com domain name
+   - Purchase it (approx $10-15 for year 1)
+
+B. [EXTERNAL] Deploy to Vercel
+   - Go to vercel.com, import your GitHub repo
+   - Add all environment variables from .env.local to Vercel
+   - Connect your Namecheap domain in Vercel project settings
+   - Add the DNS records Vercel gives you in Namecheap
+
+C. [EXTERNAL] Setup Google Workspace mailbox
+   - Go to workspace.google.com, start Business Starter
+   - Verify domain ownership using TXT record in Namecheap
+   - Add Google MX records to Namecheap DNS
+   - Create your support@yourdomain.com mailbox
+
+D. [EXTERNAL] Setup Resend for email sending
+   - Go to resend.com, create a free account
+   - Add your domain and verify it (DKIM/SPF records in Namecheap)
+   - Create an API key
+   - Add to .env.local and Vercel:
+     SMTP_HOST=smtp.resend.com
+     SMTP_PORT=587
+     SMTP_SECURE=false
+     SMTP_USER=resend
+     SMTP_PASSWORD=your_resend_api_key
+     SMTP_FROM=Tim's Glam <support@yourdomain.com>
+
+E. [EXTERNAL] Setup PayPal for payments
+   - Go to developer.paypal.com
+   - Create a live application and get your live Client ID
+   - Add to .env.local and Vercel:
+     NEXT_PUBLIC_PAYPAL_CLIENT_ID=your_live_client_id
+
+F. [EXTERNAL] Add all missing env vars to Vercel and .env.local
+   NEXT_PUBLIC_APP_URL=https://yourdomain.com
+   NEXT_PUBLIC_ADMIN_EMAIL=your_admin_email
+   NEXT_PUBLIC_PAYPAL_CLIENT_ID=your_paypal_live_id
+   (all the Firebase keys without hardcoded fallbacks)
+
+==================================================
+SECTION 6 - WHAT IS DONE AND WORKING
+==================================================
+
+[DONE] Homepage with Firestore products, slider, categories
+[DONE] Full shop with filters (category, price, gender, sort)
+[DONE] Product detail page with size/color select, add to cart
+[DONE] Cart sidebar with quantity controls and total
+[DONE] Wishlist (localStorage)
+[DONE] Checkout with PayPal (sandbox ready)
+[DONE] Full auth flow: sign up, sign in, Google sign in
+[DONE] Email verification code system (works with Resend/SMTP)
+[DONE] Password reset flow (works with Resend/SMTP)
+[DONE] Admin dashboard with live stats
+[DONE] Admin order management with status updates
+[DONE] Admin product management (add, edit, delete, image upload)
+[DONE] Admin customer management with delete
+[DONE] Admin notifications with email compose and SMTP status
+[DONE] Admin settings page (partial - not yet consumed in checkout)
+[DONE] Blog listing and detail pages
+[DONE] Support chat page (basic keyword bot)
+[DONE] Mobile bottom navigation
+[DONE] Email infrastructure (auto Ethereal fallback, ready for Resend)
+[DONE] Firebase Admin SDK integration
+[DONE] Cloudinary image upload
+
+==================================================
+EXECUTION ORDER (RECOMMENDED)
+==================================================
+
+WEEK 1 - Security and blockers
+  Step 1: Fix Firestore security rules (CRITICAL)
+  Step 2: Remove hardcoded Firebase credentials
+  Step 3: Fix /api/notify and /api/upload authentication
+  Step 4: Fix contact form - save to Firestore
+  Step 5: Add order history to customer account page
+  Step 6: Add color input to add/edit product forms
+
+WEEK 2 - Core experience polish
+  Step 7: Fix checkout to use appSettings tax/shipping
+  Step 8: Fix currency symbols (all to ₦)
+  Step 9: Fix Quick View button (add modal or remove)
+  Step 10: Fix blog share button
+  Step 11: Fix cart max quantity
+  Step 12: Create legal pages (Privacy Policy, Terms, Returns)
+
+WEEK 3 - External platform setup
+  Step 13: Buy domain (Namecheap)
+  Step 14: Deploy to Vercel with env vars
+  Step 15: Setup Google Workspace mailbox
+  Step 16: Setup Resend and verify domain
+  Step 17: Add all env vars to Vercel
+  Step 18: Test all email flows on production
+
+WEEK 4 - Final polish and launch
+  Step 19: Add OG/Twitter metadata for SEO
+  Step 20: Update footer with real contact/social links
+  Step 21: Remove fake stats or replace with real data
+  Step 22: Full end-to-end test of checkout, email, auth
+  Step 23: Launch
+
+==================================================

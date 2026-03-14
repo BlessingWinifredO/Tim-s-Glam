@@ -2,11 +2,11 @@
 
 import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/context/AuthContext'
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
+import { addDoc, collection, getDoc, doc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { PayPalButtons, PayPalScriptProvider } from '@paypal/react-paypal-js'
 import { FiLock, FiTruck } from 'react-icons/fi'
 
@@ -26,13 +26,29 @@ export default function Checkout() {
   })
   const [phone, setPhone] = useState('')
 
+  // Dynamic tax and shipping from Firestore appSettings
+  const [taxRate, setTaxRate] = useState(0.08)
+  const [shippingCost, setShippingCost] = useState(2000)
+  const [freeShippingThreshold, setFreeShippingThreshold] = useState(80000)
+
+  useEffect(() => {
+    getDoc(doc(db, 'appSettings', 'main')).then((snap) => {
+      if (snap.exists()) {
+        const pay = snap.data()?.payment || {}
+        if (pay.taxRate != null) setTaxRate(pay.taxRate / 100)
+        if (pay.shippingCost != null) setShippingCost(pay.shippingCost)
+        if (pay.freeShippingThreshold != null) setFreeShippingThreshold(pay.freeShippingThreshold)
+      }
+    }).catch(() => {})
+  }, [])
+
   const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || 'sb'
   const isSandboxMode = !process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID === 'sb'
 
   // All calculations and hooks MUST be above any early returns (React rules of hooks)
   const subtotal = getCartTotal()
-  const shipping = subtotal > 100 ? 0 : 10
-  const tax = subtotal * 0.08
+  const shipping = subtotal >= freeShippingThreshold ? 0 : shippingCost
+  const tax = subtotal * taxRate
   const total = subtotal + shipping + tax
   const paypalAmount = useMemo(() => total.toFixed(2), [total])
 
@@ -425,7 +441,7 @@ export default function Checkout() {
                         <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
                       </div>
                       <div className="text-sm font-semibold text-gray-800">
-                        ${(item.price * item.quantity).toFixed(2)}
+                        ₦{(item.price * item.quantity).toLocaleString()}
                       </div>
                     </div>
                   ))}
@@ -435,25 +451,25 @@ export default function Checkout() {
                 <div className="border-t pt-4 space-y-3">
                   <div className="flex justify-between text-gray-600">
                     <span>Subtotal</span>
-                    <span>${subtotal.toFixed(2)}</span>
+                    <span>₦{subtotal.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>Shipping</span>
-                    <span>{shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`}</span>
+                    <span>{shipping === 0 ? 'FREE' : `₦${shipping.toLocaleString()}`}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>Tax</span>
-                    <span>${tax.toFixed(2)}</span>
+                    <span>₦{tax.toLocaleString()}</span>
                   </div>
                   <div className="border-t pt-3 flex justify-between text-lg font-bold">
                     <span>Total</span>
-                    <span className="text-gold-500">${total.toFixed(2)}</span>
+                    <span className="text-gold-500">₦{total.toLocaleString()}</span>
                   </div>
                 </div>
 
-                {subtotal < 80000 && (
+                {subtotal < freeShippingThreshold && (
                   <div className="mt-4 p-3 bg-gold-50 border border-gold-200 rounded-md text-sm text-gray-700">
-                    Add ₦{(80000 - subtotal).toLocaleString()} more for FREE shipping!
+                    Add ₦{(freeShippingThreshold - subtotal).toLocaleString()} more for FREE shipping!
                   </div>
                 )}
 

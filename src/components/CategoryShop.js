@@ -234,12 +234,12 @@ export default function CategoryShop({ category }) {
                     <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
                       <div className="text-center flex-1">
                         <span className="text-xs text-gray-500 block">From</span>
-                        <span className="text-lg font-bold text-primary-600">${priceRange[0]}</span>
+                        <span className="text-lg font-bold text-primary-600">₦{priceRange[0].toLocaleString()}</span>
                       </div>
                       <div className="px-2 text-gray-300">—</div>
                       <div className="text-center flex-1">
                         <span className="text-xs text-gray-500 block">Up to</span>
-                        <span className="text-lg font-bold text-primary-600">${priceRange[1]}</span>
+                        <span className="text-lg font-bold text-primary-600">₦{priceRange[1].toLocaleString()}</span>
                       </div>
                     </div>
                     <input

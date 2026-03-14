@@ -1,11 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useAdminAuth } from '@/context/AdminAuthContext'
 import { FiMail, FiSend, FiCheck, FiX, FiLoader } from 'react-icons/fi'
 import { formatEmailLogTimestamp } from '@/lib/emailLog'
 import { getEmailLogStatusTone } from '@/lib/emailLogStatus'
 
 export default function AdminNotificationsPage() {
+  const { adminUser } = useAdminAuth()
   const [formData, setFormData] = useState({
     to: '',
     subject: '',
@@ -70,7 +72,11 @@ export default function AdminNotificationsPage() {
     try {
       const response = await fetch('/api/notify', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-session': 'true',
+          'x-admin-email': adminUser?.email || '',
+        },
         body: JSON.stringify({
           action: 'customEmail',
           to: formData.to.trim(),

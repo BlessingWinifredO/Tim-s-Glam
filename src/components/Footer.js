@@ -54,8 +54,8 @@ export default function Footer() {
           <div>
             <h4 className="text-lg font-semibold mb-4 text-gold-500">Customer Service</h4>
             <ul className="space-y-2">
-              <li><Link href="#" className="text-primary-100 hover:text-gold-300 transition-colors">Shipping Info</Link></li>
-              <li><Link href="#" className="text-primary-100 hover:text-gold-300 transition-colors">Returns</Link></li>
+              <li><Link href="/shipping-info" className="text-primary-100 hover:text-gold-300 transition-colors">Shipping Info</Link></li>
+              <li><Link href="/returns" className="text-primary-100 hover:text-gold-300 transition-colors">Returns</Link></li>
               <li><Link href="#" className="text-primary-100 hover:text-gold-300 transition-colors">Size Guide</Link></li>
               <li><Link href="#" className="text-primary-100 hover:text-gold-300 transition-colors">FAQ</Link></li>
             </ul>
@@ -87,8 +87,8 @@ export default function Footer() {
             &copy; {currentYear} TIM&apos;S GLAM. All Rights Reserved.
           </p>
           <div className="flex items-center gap-5">
-            <Link href="#" className="text-primary-100 hover:text-gold-300 transition-colors">Privacy Policy</Link>
-            <Link href="#" className="text-primary-100 hover:text-gold-300 transition-colors">Terms of Service</Link>
+            <Link href="/privacy-policy" className="text-primary-100 hover:text-gold-300 transition-colors">Privacy Policy</Link>
+            <Link href="/terms" className="text-primary-100 hover:text-gold-300 transition-colors">Terms of Service</Link>
           </div>
         </div>
       </div>

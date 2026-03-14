@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useAdminAuth } from '@/context/AdminAuthContext'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
@@ -64,6 +65,7 @@ function renderPreviewContent(content) {
 
 export default function AddBlogPostPage() {
   const router = useRouter()
+  const { adminUser } = useAdminAuth()
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
@@ -118,6 +120,10 @@ export default function AddBlogPostPage() {
 
       const response = await fetch('/api/upload', {
         method: 'POST',
+        headers: {
+          'x-admin-session': 'true',
+          'x-admin-email': adminUser?.email || '',
+        },
         body: uploadData,
       })
 

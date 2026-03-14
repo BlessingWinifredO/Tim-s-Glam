@@ -88,6 +88,16 @@ export async function GET() {
   })
 }
 
+function getAllowedAdminEmails() {
+  const raw = process.env.NEXT_PUBLIC_ADMIN_EMAIL || ''
+  return raw.split(',').map((e) => e.trim().toLowerCase()).filter(Boolean)
+}
+
+// Broadcast actions can only be triggered by an authenticated admin session.
+// Transactional actions (welcome, orderPlaced, etc.) are called internally
+// from checkout / auth flows and are validated by the presence of a valid payload.
+const BROADCAST_ACTIONS = new Set(['newProductBroadcast', 'newBlogBroadcast', 'customEmail'])
+
 export async function POST(request) {
   let payload = null
   let action = 'unknown'
@@ -98,6 +108,16 @@ export async function POST(request) {
 
     if (!action) {
       return NextResponse.json({ error: 'action is required' }, { status: 400 })
+    }
+
+    // Require admin session header for broadcast/manual email actions
+    if (BROADCAST_ACTIONS.has(action)) {
+      const adminSession = request.headers.get('x-admin-session')
+      const adminEmail = String(request.headers.get('x-admin-email') || '').trim().toLowerCase()
+      const allowedAdmins = getAllowedAdminEmails()
+      if (adminSession !== 'true' || !allowedAdmins.includes(adminEmail)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
     }
 
     if (action === 'welcome') {
@@ -239,7 +259,7 @@ export async function POST(request) {
       const html = wrapTemplate(
         'New Product Update',
         `<p>We just added a new item: <strong>${productName}</strong>.</p>
-         <p><strong>Price:</strong> $${price}</p>
+         <p><strong>Price:</strong> ₦${price}</p>
          <p><a href="${appLink(`/shop/${productId}`)}" style="color:#4a1d75; font-weight:600;">View Product</a></p>`
       )
 
