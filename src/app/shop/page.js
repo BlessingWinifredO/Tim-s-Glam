@@ -6,7 +6,7 @@ import { collection, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import ProductCard from '@/components/ProductCard'
 import { isProductPubliclyAvailable } from '@/lib/productAvailability'
-import { FiFilter, FiX, FiLoader, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
+import { FiLoader, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 
 // Keep subcategory names for display purposes
 const subcategoryNames = {
@@ -37,13 +37,6 @@ const subcategoryNames = {
   gown: 'Gown'
 }
 
-const allAudienceOptions = [
-  { id: 'men', label: 'Men Wears' },
-  { id: 'women', label: 'Women Wears' },
-  { id: 'boys', label: 'Boys Wears' },
-  { id: 'girls', label: 'Girls Wears' }
-]
-
 const audienceMatchMap = {
   men: ['men', 'unisex'],
   women: ['women', 'unisex'],
@@ -67,7 +60,6 @@ export default function Shop() {
   const [selectedSubcategory, setSelectedSubcategory] = useState('all')
   const [sortBy, setSortBy] = useState('featured')
   const [priceRange, setPriceRange] = useState([0, 250])
-  const [showFilters, setShowFilters] = useState(false)
   const [selectedTraditionalGroup, setSelectedTraditionalGroup] = useState('none')
   const categoryScrollRef = useRef(null)
 
@@ -110,25 +102,6 @@ export default function Shop() {
 
     fetchProducts()
   }, [])
-
-  const availableSubcategories = useMemo(() => {
-    let scopedProducts = products
-
-    if (selectedCategory !== 'all') {
-      scopedProducts = scopedProducts.filter(p => p.category === selectedCategory)
-    }
-
-    if (selectedAudience !== 'all') {
-      scopedProducts = scopedProducts.filter(p => audienceMatchMap[selectedAudience].includes(p.audience || 'unisex'))
-    }
-
-    const uniqueSubcategories = [...new Set(scopedProducts.map(p => p.subcategory))]
-    return uniqueSubcategories.sort((a, b) => {
-      const first = subcategoryNames[a] || a
-      const second = subcategoryNames[b] || b
-      return first.localeCompare(second)
-    })
-  }, [products, selectedCategory, selectedAudience])
 
   const filteredProducts = useMemo(() => {
     let filtered = [...products]
@@ -174,13 +147,6 @@ export default function Shop() {
 
     return filtered
   }, [products, selectedCategory, selectedAudience, selectedSubcategory, selectedTraditionalGroup, sortBy, priceRange])
-
-  const handleCategoryChange = (categoryId) => {
-    setSelectedCategory(categoryId)
-    setSelectedAudience('all')
-    setSelectedSubcategory('all')
-    setSelectedTraditionalGroup('none')
-  }
 
   const handleTraditionalGroupChange = (groupId) => {
     setSelectedTraditionalGroup(groupId)
@@ -334,7 +300,8 @@ export default function Shop() {
 
             <div
               ref={categoryScrollRef}
-              className="flex items-center gap-3 overflow-x-auto no-scrollbar px-1 md:px-14 py-1"
+              className="flex items-center gap-3 overflow-x-auto px-1 md:px-14 py-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
               {quickCategoryItems.map((item) => {
                 const active = isQuickCategoryActive(item.id)
@@ -366,137 +333,6 @@ export default function Shop() {
           </div>
         </div>
       </section>
-
-      {/* Filter Toolbar */}
-      <section className="sticky top-16 z-20 bg-white border-b border-gray-200 shadow-sm">
-        <div className="container-custom py-3">
-          <div className="flex items-center justify-between gap-4">
-            {/* Filters Button */}
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-lg font-semibold shadow-sm hover:bg-primary-700 active:scale-95 transition-all"
-            >
-              <FiFilter size={20} />
-              Filters
-            </button>
-
-            {/* Product Count */}
-            <div className="flex-1">
-              <p className="text-gray-600 text-sm">
-                <span className="font-semibold text-primary-600">{filteredProducts.length}</span> products found
-              </p>
-            </div>
-
-            {/* Filter Dropdown */}
-            <div className="flex items-center gap-2">
-              <label className="text-gray-600 text-sm font-medium">Filter by:</label>
-              <select
-                value={selectedCategory}
-                onChange={(e) => handleCategoryChange(e.target.value)}
-                className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
-              >
-                <option value="all">All Categories</option>
-                <option value="adults">Adults</option>
-                <option value="kids">Kids</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Filter Modal Backdrop */}
-      {showFilters && (
-        <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setShowFilters(false)} />
-      )}
-
-      {/* Filter Modal */}
-      {showFilters && (
-        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-2xl bg-white rounded-2xl shadow-2xl">
-          <div className="p-8">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-200">
-              <h2 className="text-2xl font-bold text-primary-700">Filters</h2>
-              <button
-                onClick={() => setShowFilters(false)}
-                className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 text-gray-600 hover:text-primary-600 transition-colors"
-              >
-                <FiX size={24} />
-              </button>
-            </div>
-
-            <div className="space-y-8">
-              {/* Gender Categories Section */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Gender</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {allAudienceOptions.map(option => (
-                    <button
-                      key={option.id}
-                      onClick={() => setSelectedAudience(option.id)}
-                      className={`px-4 py-3 rounded-lg font-semibold transition-all text-center ${
-                        selectedAudience === option.id
-                          ? 'bg-primary-600 text-white shadow-lg shadow-primary-200'
-                          : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Product Type Section */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Product Type</h3>
-                <div className="flex flex-wrap gap-2.5">
-                  <button
-                    onClick={() => setSelectedSubcategory('all')}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      selectedSubcategory === 'all'
-                        ? 'bg-primary-600 text-white shadow-lg shadow-primary-200'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    All
-                  </button>
-                  {availableSubcategories.map(sub => (
-                    <button
-                      key={sub}
-                      onClick={() => setSelectedSubcategory(sub)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                        selectedSubcategory === sub
-                          ? 'bg-primary-600 text-white shadow-lg shadow-primary-200'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      {subcategoryNames[sub]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="mt-8 pt-6 border-t border-gray-200 flex gap-3">
-              <button
-                onClick={() => {
-                  resetFilters()
-                  setShowFilters(false)
-                }}
-                className="flex-1 px-4 py-3 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
-              >
-                Reset
-              </button>
-              <button
-                onClick={() => setShowFilters(false)}
-                className="flex-1 px-4 py-3 rounded-lg bg-primary-600 text-white font-semibold hover:bg-primary-700 transition-colors"
-              >
-                Apply Filters
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <section className="section-padding py-10">
         <div className="container-custom">
