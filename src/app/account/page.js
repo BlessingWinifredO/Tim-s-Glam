@@ -197,6 +197,39 @@ export default function AccountPage() {
     )
   }
 
+  const friendlyAuthError = (error) => {
+    const msg = error?.message || ''
+    if (msg.includes('auth/network-request-failed') || msg.includes('network-request-failed')) {
+      return 'Connection problem — please check your internet and try again.'
+    }
+    if (msg.includes('auth/too-many-requests')) {
+      return 'Too many attempts. Please wait a few minutes and try again.'
+    }
+    if (msg.includes('auth/user-disabled')) {
+      return 'This account has been disabled. Please contact support.'
+    }
+    if (msg.includes('auth/wrong-password') || msg.includes('auth/invalid-credential')) {
+      return 'Incorrect email or password. Please try again.'
+    }
+    if (msg.includes('auth/user-not-found')) {
+      return 'No account found with this email. Please sign up first.'
+    }
+    if (msg.includes('auth/email-already-in-use')) {
+      return 'An account with this email already exists. Please sign in instead.'
+    }
+    if (msg.includes('auth/invalid-email')) {
+      return 'Please enter a valid email address.'
+    }
+    if (msg.includes('auth/weak-password')) {
+      return 'Password must be at least 6 characters.'
+    }
+    // Return the message as-is if it's already a friendly custom message (no auth/ code)
+    if (!msg.includes('auth/') && !msg.includes('Firebase:')) {
+      return msg
+    }
+    return 'Something went wrong. Please try again.'
+  }
+
   const handleChange = (event) => {
     const { name, value } = event.target
     setFormData((prev) => ({ ...prev, [name]: value }))
@@ -291,12 +324,12 @@ export default function AccountPage() {
           router.push(`/verify-email?${params.toString()}`)
           return
         } catch (verificationError) {
-          setAuthError(verificationError?.message || 'Could not send verification code. Please try again.')
+          setAuthError(friendlyAuthError(verificationError) || 'Could not send verification code. Please try again.')
           return
         }
       }
 
-      setAuthError(message)
+      setAuthError(friendlyAuthError(error))
     } finally {
       setIsSubmitting(false)
     }
@@ -312,7 +345,7 @@ export default function AccountPage() {
       setAuthMessage('Signed in with Google successfully.')
       setSubmitted(true)
     } catch (error) {
-      setAuthError(error.message || 'Could not send password reset email.')
+      setAuthError(friendlyAuthError(error))
     } finally {
       setIsSubmitting(false)
     }

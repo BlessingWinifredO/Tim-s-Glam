@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
   fetchSignInMethodsForEmail,
   getRedirectResult,
   onAuthStateChanged,
@@ -216,17 +217,24 @@ export function AuthProvider({ children }) {
     clearAdminSession()
     const normalizedEmail = email.toLowerCase()
     pendingVerificationSignupRef.current = true
+    let createdAuthUser = null
 
     try {
       const credential = await createUserWithEmailAndPassword(auth, normalizedEmail, password)
+      createdAuthUser = credential.user
 
-      if (fullName?.trim()) {
-        await updateProfile(credential.user, { displayName: fullName.trim() })
+      // updateProfile is best-effort — a network blip here must not leave a half-created account
+      try {
+        if (fullName?.trim()) {
+          await updateProfile(credential.user, { displayName: fullName.trim() })
+        }
+      } catch {
+        // Non-fatal: display name update failed but account creation can continue
       }
 
       await persistUserProfile(credential.user.uid, {
         uid: credential.user.uid,
-        fullName: fullName?.trim() || credential.user.displayName || '',
+        fullName: fullName?.trim() || '',
         email: normalizedEmail,
         photoURL: credential.user.photoURL || '',
         provider: 'password',
@@ -264,13 +272,21 @@ export function AuthProvider({ children }) {
 
       // Sign out after registration (user must verify email first)
       await signOut(auth)
+      createdAuthUser = null // Successfully completed — no cleanup needed
 
       return { credential, emailSent }
     } catch (error) {
-      try {
-        await signOut(auth)
-      } catch {
-        // Ignore cleanup sign-out failures.
+      // If account was created in Firebase Auth but something failed after,
+      // delete the half-created auth user so the email is freed for a clean retry.
+      if (createdAuthUser) {
+        try {
+          await deleteUser(createdAuthUser)
+        } catch {
+          // If delete fails (e.g. already signed out), just sign out to clear session.
+          try { await signOut(auth) } catch { /* ignore */ }
+        }
+      } else {
+        try { await signOut(auth) } catch { /* ignore */ }
       }
       throw error
     } finally {
@@ -481,15 +497,41 @@ export function AuthProvider({ children }) {
     }
 
     const credential = await signInWithEmailAndPassword(auth, normalizedEmail, password)
+    const uid = credential.user.uid
     await signOut(auth)
 
-    const userDoc = await getDoc(doc(db, 'users', credential.user.uid))
-    if (userDoc.data()?.emailVerified) {
+    // Check if Firestore user doc exists — it may be missing if a previous sign-up
+    // failed mid-way (e.g. auth/network-request-failed after account creation).
+    const userDocRef = doc(db, 'users', uid)
+    const userDoc = await getDoc(userDocRef)
+
+    if (userDoc.exists() && userDoc.data()?.emailVerified) {
       throw new Error('This account is already verified. Please sign in normally.')
     }
 
-    return createOrResendVerificationCode(normalizedEmail)
-  }, [createOrResendVerificationCode])
+    // If the Firestore doc is missing, recreate it so the verification flow can proceed.
+    if (!userDoc.exists()) {
+      await persistUserProfile(uid, {
+        uid,
+        fullName: credential.user.displayName || '',
+        email: normalizedEmail,
+        photoURL: credential.user.photoURL || '',
+        provider: 'password',
+        createdAt: serverTimestamp(),
+        lastLoginAt: serverTimestamp(),
+        emailVerified: false,
+        welcomeEmailSent: false,
+      })
+    }
+
+    // Generate code directly using the UID we already have — avoids the Firestore search
+    // that fails when the user doc was missing (the original bug).
+    const code = generateCode()
+    await storeVerificationCode(normalizedEmail, code, uid)
+    const emailSent = await sendCodeEmail({ email: normalizedEmail, code, type: 'verification' })
+
+    return { success: true, code, emailSent }
+  }, [persistUserProfile, sendCodeEmail, storeVerificationCode])
 
   // Send password reset code
   const sendResetCode = useCallback(async (email) => {
