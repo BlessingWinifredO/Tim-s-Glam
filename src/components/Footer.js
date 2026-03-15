@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { FiFacebook, FiInstagram, FiTwitter, FiMail, FiPhone, FiHeadphones } from 'react-icons/fi'
+import { FiInstagram, FiMail, FiPhone, FiHeadphones } from 'react-icons/fi'
 
 export default function Footer() {
   const currentYear = new Date().getFullYear()
@@ -27,14 +27,8 @@ export default function Footer() {
               Your destination for premium unisex fashion. We bring style, quality, and glamour to the whole family.
             </p>
             <div className="flex space-x-4">
-              <a href="#" aria-label="Facebook" className="w-9 h-9 rounded-full border border-white/20 hover:border-gold-400 hover:text-gold-300 transition-all flex items-center justify-center">
-                <FiFacebook size={20} />
-              </a>
               <a href="https://www.instagram.com/tims.glam?igsh=MWwxNXhhMGwyYWo0eg%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="w-9 h-9 rounded-full border border-white/20 hover:border-gold-400 hover:text-gold-300 transition-all flex items-center justify-center">
                 <FiInstagram size={20} />
-              </a>
-              <a href="#" aria-label="Twitter" className="w-9 h-9 rounded-full border border-white/20 hover:border-gold-400 hover:text-gold-300 transition-all flex items-center justify-center">
-                <FiTwitter size={20} />
               </a>
             </div>
           </div>

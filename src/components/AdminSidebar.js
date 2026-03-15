@@ -2,9 +2,8 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { collection, getDocs } from 'firebase/firestore'
-import { useAdminAuth } from '@/context/AdminAuthContext'
 import { db } from '@/lib/firebase'
 import { 
   FiHome, 
@@ -13,7 +12,6 @@ import {
   FiEdit3,
   FiUsers, 
   FiSettings,
-  FiLogOut,
   FiChevronRight,
   FiMail,
   FiX,
@@ -32,8 +30,6 @@ const navigation = [
 
 export default function AdminSidebar({ isOpen, onClose }) {
   const pathname = usePathname()
-  const router = useRouter()
-  const { adminUser, adminLogout } = useAdminAuth()
   const [quickStats, setQuickStats] = useState({ products: 0, orders: 0, customers: 0 })
 
   useEffect(() => {
@@ -75,12 +71,6 @@ export default function AdminSidebar({ isOpen, onClose }) {
 
     fetchQuickStats()
   }, [])
-
-  const handleLogout = () => {
-    adminLogout()
-    router.push('/admin/signin')
-    if (onClose) onClose()
-  }
 
   return (
     <>
@@ -182,31 +172,6 @@ export default function AdminSidebar({ isOpen, onClose }) {
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* User Profile Footer */}
-          <div className="border-t border-slate-800 p-4 mx-4 mb-4 bg-slate-900 rounded-xl">
-            <div className="flex items-center gap-3">
-              <div className="flex-shrink-0">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center font-bold text-white shadow-lg">
-                  {adminUser?.name?.charAt(0)?.toUpperCase() || 'A'}
-                </div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white truncate">
-                  {adminUser?.name || 'Admin'}
-                </p>
-                <p className="text-xs text-slate-400 truncate">{adminUser?.email || 'Admin user'}</p>
-              </div>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="w-full mt-3 flex items-center justify-center gap-2 px-3 py-2.5 text-sm text-rose-300 hover:text-rose-200 hover:bg-rose-500/10 rounded-lg transition-all duration-200 border border-rose-500/20"
-              title="Logout"
-            >
-              <FiLogOut size={15} />
-              <span>Sign out</span>
-            </button>
           </div>
         </div>
       </aside>

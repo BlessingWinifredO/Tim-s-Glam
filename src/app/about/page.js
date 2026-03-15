@@ -37,10 +37,10 @@ export default function About() {
   ]
 
   const stats = [
-    { number: '10K+', label: 'Happy Customers' },
-    { number: '500+', label: 'Products' },
-    { number: '50+', label: 'Countries Served' },
-    { number: '4.9', label: 'Average Rating' }
+    { number: 'Curated', label: 'Fashion Selection' },
+    { number: 'Adults + Kids', label: 'Style Categories' },
+    { number: 'Secure', label: 'Checkout Experience' },
+    { number: 'Growing', label: 'Community Journey' }
   ]
 
   const team = [

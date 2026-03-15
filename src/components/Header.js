@@ -131,7 +131,7 @@ export default function Header() {
         {/* Top Bar */}
         <div className="bg-primary-600 text-white">
           <div className="container-custom py-2 text-xs sm:text-sm flex items-center justify-center">
-            <p className="tracking-wide">Free Shipping Over ₦100,000 - Use Code GLAM2026</p>
+            <p className="tracking-wide">Free Shipping on Orders Over ₦100,000</p>
           </div>
         </div>
 
